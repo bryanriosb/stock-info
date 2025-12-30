@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/bryanriosb/stock-info/shared"
@@ -48,7 +49,7 @@ func newConnection(cfg shared.DatabaseConfig) (*gorm.DB, error) {
 	)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logger.Warn),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
@@ -65,9 +66,40 @@ func newConnection(cfg shared.DatabaseConfig) (*gorm.DB, error) {
 	return db, nil
 }
 
+// tableExists checks if a table already exists in the database
+func tableExists(db *gorm.DB, tableName string) bool {
+	var count int64
+	db.Raw("SELECT count(*) FROM information_schema.tables WHERE table_schema = CURRENT_SCHEMA() AND table_name = ? AND table_type = 'BASE TABLE'", tableName).Scan(&count)
+	return count > 0
+}
+
+// RunMigrations runs database migrations only if tables don't exist
 func RunMigrations(db *gorm.DB, models ...interface{}) error {
+	needsMigration := false
+
+	for _, model := range models {
+		tableName := ""
+		if tabler, ok := model.(interface{ TableName() string }); ok {
+			tableName = tabler.TableName()
+		}
+
+		if tableName != "" && !tableExists(db, tableName) {
+			needsMigration = true
+			log.Printf("Table '%s' does not exist, migration needed", tableName)
+			break
+		}
+	}
+
+	if !needsMigration {
+		log.Println("All tables exist, skipping migrations")
+		return nil
+	}
+
+	log.Println("Running database migrations...")
 	if err := db.AutoMigrate(models...); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
+	log.Println("Migrations completed successfully")
+
 	return nil
 }

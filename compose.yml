@@ -22,22 +22,12 @@ services:
       dockerfile: Dockerfile
     container_name: stockinfo-backend
     ports:
-      - "3000:3000"
+      - "5000:5000"
     volumes:
       - ./backend:/app
       - go-modules:/go/pkg/mod
-    environment:
-      - SERVER_PORT=3000
-      - DB_HOST=cockroachdb
-      - DB_PORT=26257
-      - DB_USER=root
-      - DB_PASSWORD=
-      - DB_NAME=stockinfo
-      - DB_SSLMODE=disable
-      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
-      - JWT_EXPIRATION=24h
-      - STOCK_API_URL=https://api.karenai.click/swechallenge/list
-      - STOCK_API_TOKEN=${STOCK_API_TOKEN}
+    env_file:
+      - .env
     depends_on:
       cockroachdb:
         condition: service_healthy
