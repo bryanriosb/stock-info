@@ -44,7 +44,7 @@ function getProgressColor(score: number) {
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
         <h1 class="text-3xl font-bold tracking-tight">Recommendations</h1>
-        <p class="text-muted-foreground">AI-powered stock recommendations</p>
+        <p class="text-muted-foreground">Stock recommendations</p>
       </div>
       <div class="flex items-center gap-4">
         <Select :model-value="limit" @update:model-value="handleLimitChange">

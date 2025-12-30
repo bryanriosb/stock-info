@@ -33,7 +33,7 @@ export const useStocksStore = defineStore('stocks', () => {
     }
   }
 
-  async function fetchStockById(id: number) {
+  async function fetchStockById(id: string) {
     loading.value = true
     error.value = null
     currentStock.value = null

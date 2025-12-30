@@ -14,7 +14,7 @@ const route = useRoute()
 const router = useRouter()
 const store = useStocksStore()
 
-const stockId = computed(() => Number(route.params.id))
+const stockId = computed(() => route.params.id as string)
 onMounted(() => store.fetchStockById(stockId.value))
 
 const priceChange = computed(() => {
