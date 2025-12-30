@@ -6,6 +6,7 @@ import (
 	"github.com/bryanriosb/stock-info/internal/auth"
 	"github.com/bryanriosb/stock-info/internal/recommendation"
 	"github.com/bryanriosb/stock-info/internal/stock"
+	"github.com/bryanriosb/stock-info/internal/user"
 	"github.com/bryanriosb/stock-info/shared"
 	"github.com/bryanriosb/stock-info/shared/middleware"
 	"github.com/gofiber/fiber/v2"
@@ -17,12 +18,15 @@ func Setup(app *fiber.App, db *gorm.DB, cfg *shared.Config) {
 	app.Get("/", root)
 
 	api := app.Group("/api/v1")
+	protected := api.Group("", middleware.JWTProtected(cfg.JWT.Secret))
 
-	// Public routes
-	auth.Register(api, cfg)
+	// User module (public: POST /users, protected: GET/PUT/DELETE)
+	userUseCase := user.Register(api, protected, db)
+
+	// Auth (public)
+	auth.Register(api, cfg, userUseCase)
 
 	// Protected routes
-	protected := api.Group("", middleware.JWTProtected(cfg.JWT.Secret))
 	stock.Register(protected, db, cfg)
 	recommendation.Register(protected, db)
 }

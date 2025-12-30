@@ -53,3 +53,10 @@ func NotFound(c *fiber.Ctx, message string) error {
 func InternalError(c *fiber.Ctx, message string) error {
 	return Error(c, fiber.StatusInternalServerError, message)
 }
+
+func Created(c *fiber.Ctx, data interface{}) error {
+	return c.Status(fiber.StatusCreated).JSON(Response{
+		Success: true,
+		Data:    data,
+	})
+}

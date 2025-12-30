@@ -3,7 +3,8 @@ package main
 import (
 	"log"
 
-	"github.com/bryanriosb/stock-info/internal/stock/domain"
+	stockDomain "github.com/bryanriosb/stock-info/internal/stock/domain"
+	userDomain "github.com/bryanriosb/stock-info/internal/user/domain"
 	"github.com/bryanriosb/stock-info/shared"
 	"github.com/bryanriosb/stock-info/shared/database"
 	"github.com/bryanriosb/stock-info/shared/router"
@@ -17,7 +18,7 @@ func main() {
 	}
 	defer database.Close()
 
-	if err := database.RunMigrations(database.DB(), &domain.Stock{}); err != nil {
+	if err := database.RunMigrations(database.DB(), &stockDomain.Stock{}, &userDomain.User{}); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 

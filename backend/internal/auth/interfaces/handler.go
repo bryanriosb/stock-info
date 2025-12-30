@@ -1,8 +1,10 @@
 package interfaces
 
 import (
+	"errors"
 	"time"
 
+	"github.com/bryanriosb/stock-info/internal/user/application"
 	"github.com/bryanriosb/stock-info/shared"
 	"github.com/bryanriosb/stock-info/shared/response"
 	"github.com/gofiber/fiber/v2"
@@ -10,11 +12,15 @@ import (
 )
 
 type Handler struct {
-	jwtConfig shared.JWTConfig
+	jwtConfig   shared.JWTConfig
+	userUseCase application.UserUseCase
 }
 
-func NewHandler(jwtConfig shared.JWTConfig) *Handler {
-	return &Handler{jwtConfig: jwtConfig}
+func NewHandler(jwtConfig shared.JWTConfig, userUseCase application.UserUseCase) *Handler {
+	return &Handler{
+		jwtConfig:   jwtConfig,
+		userUseCase: userUseCase,
+	}
 }
 
 type LoginRequest struct {
@@ -32,11 +38,15 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 		return response.BadRequest(c, "Username and password are required")
 	}
 
-	if req.Username != "admin" || req.Password != "admin" {
-		return response.Unauthorized(c, "Invalid credentials")
+	user, err := h.userUseCase.Authenticate(c.Context(), req.Username, req.Password)
+	if err != nil {
+		if errors.Is(err, application.ErrInvalidCredentials) {
+			return response.Unauthorized(c, "Invalid credentials")
+		}
+		return response.InternalError(c, "Authentication failed")
 	}
 
-	token, err := h.generateToken(req.Username)
+	token, err := h.generateToken(user.Username)
 	if err != nil {
 		return response.InternalError(c, "Failed to generate token")
 	}
