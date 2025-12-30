@@ -124,6 +124,11 @@ backend-rebuild:
 	@echo "Rebuilding backend container..."
 	@docker compose up -d --build backend
 
+
+frontend-restart:
+	@echo "Restarting frontend container..."
+	@docker compose restart frontend
+
 # =============================================================================
 # UI COMMANDS (placeholder for future)
 # =============================================================================
@@ -180,6 +185,9 @@ help:
 	@echo "  make backend-restart        - Restart backend container"
 	@echo "  make backend-rebuild        - Rebuild and restart backend container"
 	@echo ""
+	@echo "Frontend Commands:"
+	@echo "  make frontend-restart         - Restart frontend container"
+
 	@echo "Docker Compose Commands:"
 	@echo "  make up                     - Start all services"
 	@echo "  make down                   - Stop all services"
