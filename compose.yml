@@ -1,0 +1,53 @@
+services:
+  cockroachdb:
+    image: cockroachdb/cockroach:v23.2.0
+    container_name: stockinfo-cockroachdb
+    command: start-single-node --insecure
+    ports:
+      - "26257:26257"
+      - "8080:8080"
+    volumes:
+      - cockroach-data:/cockroach/cockroach-data
+    networks:
+      - stockinfo-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: stockinfo-backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend:/app
+      - go-modules:/go/pkg/mod
+    environment:
+      - SERVER_PORT=3000
+      - DB_HOST=cockroachdb
+      - DB_PORT=26257
+      - DB_USER=root
+      - DB_PASSWORD=
+      - DB_NAME=stockinfo
+      - DB_SSLMODE=disable
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+      - JWT_EXPIRATION=24h
+      - STOCK_API_URL=https://api.karenai.click/swechallenge/list
+      - STOCK_API_TOKEN=${STOCK_API_TOKEN}
+    depends_on:
+      cockroachdb:
+        condition: service_healthy
+    networks:
+      - stockinfo-network
+
+volumes:
+  cockroach-data:
+  go-modules:
+
+networks:
+  stockinfo-network:
+    driver: bridge
