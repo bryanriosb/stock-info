@@ -18,15 +18,20 @@ func Setup(app *fiber.App, db *gorm.DB, cfg *shared.Config) {
 	app.Get("/", root)
 
 	api := app.Group("/api/v1")
-	protected := api.Group("", middleware.JWTProtected(cfg.JWT.Secret))
 
-	// User module (public: POST /users, protected: GET/PUT/DELETE)
-	userUseCase := user.Register(api, protected, db)
+	// Register user module without protected routes first
+	userUseCase := user.RegisterPublicOnly(api, db)
 
-	// Auth (public)
+	// Register public auth routes
 	auth.Register(api, cfg, userUseCase)
 
-	// Protected routes
+	// Create protected group with JWT middleware
+	protected := api.Group("", middleware.JWTProtected(cfg.JWT.Secret))
+
+	// Register protected user routes
+	user.RegisterProtected(protected, userUseCase)
+
+	// Register other protected modules
 	stock.Register(protected, db, cfg)
 	recommendation.Register(protected, db)
 }

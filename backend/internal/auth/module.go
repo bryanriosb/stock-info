@@ -7,9 +7,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func Register(app fiber.Router, cfg *shared.Config, userUseCase application.UserUseCase) {
+func Register(api fiber.Router, cfg *shared.Config, userUseCase application.UserUseCase) {
 	handler := interfaces.NewHandler(cfg.JWT, userUseCase)
 
-	group := app.Group("/auth")
+	group := api.Group("/auth")
 	group.Post("/login", handler.Login)
 }
