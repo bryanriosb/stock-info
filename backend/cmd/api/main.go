@@ -3,31 +3,28 @@ package main
 import (
 	"log"
 
-	"github.com/bryanriosb/stock-info/internal/container"
-	"github.com/bryanriosb/stock-info/internal/domain/entity"
-	"github.com/bryanriosb/stock-info/internal/infrastructure/database"
-	"github.com/bryanriosb/stock-info/internal/interfaces/http/router"
-	"github.com/bryanriosb/stock-info/pkg/config"
+	"github.com/bryanriosb/stock-info/internal/stock/domain"
+	"github.com/bryanriosb/stock-info/shared"
+	"github.com/bryanriosb/stock-info/shared/database"
+	"github.com/bryanriosb/stock-info/shared/router"
 )
 
 func main() {
-	cfg := config.Load()
+	cfg := shared.LoadConfig()
 
 	if err := database.Init(cfg.Database); err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer database.Close()
 
-	if err := database.RunMigrations(database.DB(), &entity.Stock{}); err != nil {
+	if err := database.RunMigrations(database.DB(), &domain.Stock{}); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
 	log.Println("Database connected and migrations completed")
 
-	c := container.New(cfg, database.DB())
-
 	app := newFiberApp()
-	router.Setup(app, c.RouterHandlers(), c.JWTSecret())
+	router.Setup(app, database.DB(), cfg)
 
 	go startServer(app, cfg.Server.Port)
 
