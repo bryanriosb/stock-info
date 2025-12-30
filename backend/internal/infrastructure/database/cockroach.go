@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/bryanriosb/stock-info/pkg/config"
 	"gorm.io/driver/postgres"
@@ -9,7 +10,38 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-func NewCockroachDB(cfg config.DatabaseConfig) (*gorm.DB, error) {
+var (
+	instance *gorm.DB
+	once     sync.Once
+	initErr  error
+)
+
+func Init(cfg config.DatabaseConfig) error {
+	once.Do(func() {
+		instance, initErr = newConnection(cfg)
+	})
+	return initErr
+}
+
+func DB() *gorm.DB {
+	if instance == nil {
+		panic("database not initialized: call database.Init() first")
+	}
+	return instance
+}
+
+func Close() error {
+	if instance == nil {
+		return nil
+	}
+	sqlDB, err := instance.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
+}
+
+func newConnection(cfg config.DatabaseConfig) (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode,

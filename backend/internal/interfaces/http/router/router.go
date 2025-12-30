@@ -9,8 +9,9 @@ import (
 )
 
 type Handlers struct {
-	Stock *handler.StockHandler
-	Auth  *handler.AuthHandler
+	Stock          *handler.StockHandler
+	Auth           *handler.AuthHandler
+	Recommendation *handler.RecommendationHandler
 }
 
 func Setup(app *fiber.App, h *Handlers, jwtSecret string) {
@@ -24,11 +25,15 @@ func Setup(app *fiber.App, h *Handlers, jwtSecret string) {
 	auth.Post("/login", h.Auth.Login)
 
 	// Protected routes
-	stocks := api.Group("/stocks", middleware.JWTProtected(jwtSecret))
+	protected := api.Group("", middleware.JWTProtected(jwtSecret))
+
+	stocks := protected.Group("/stocks")
 	stocks.Get("/", h.Stock.GetStocks)
 	stocks.Get("/:id", h.Stock.GetStockByID)
 	stocks.Get("/ticker/:ticker", h.Stock.GetStockByTicker)
 	stocks.Post("/sync", h.Stock.SyncStocks)
+
+	protected.Get("/recommendations", h.Recommendation.GetRecommendations)
 }
 
 func healthCheck(c *fiber.Ctx) error {
