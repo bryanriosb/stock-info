@@ -12,8 +12,8 @@ type Stock struct {
 	RatingTo   string    `json:"rating_to" gorm:"size:50"`
 	TargetFrom float64   `json:"target_from" gorm:"type:decimal(10,2)"`
 	TargetTo   float64   `json:"target_to" gorm:"type:decimal(10,2)"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	CreatedAt  time.Time `json:"created_at" gorm:"type:timestamp;autoCreateTime"`
+	UpdatedAt  time.Time `json:"updated_at" gorm:"type:timestamp;autoUpdateTime"`
 }
 
 func (Stock) TableName() string {

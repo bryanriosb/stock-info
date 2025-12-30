@@ -3,15 +3,32 @@ package router
 import (
 	"time"
 
+	"github.com/bryanriosb/stock-info/internal/interfaces/http/handler"
+	"github.com/bryanriosb/stock-info/internal/interfaces/http/middleware"
 	"github.com/gofiber/fiber/v2"
 )
 
-func Setup(app *fiber.App) {
+type Handlers struct {
+	Stock *handler.StockHandler
+	Auth  *handler.AuthHandler
+}
+
+func Setup(app *fiber.App, h *Handlers, jwtSecret string) {
 	app.Get("/health", healthCheck)
 	app.Get("/", root)
 
-	// API v1 routes will be added in Phase 4
-	// api := app.Group("/api/v1")
+	api := app.Group("/api/v1")
+
+	// Public routes
+	auth := api.Group("/auth")
+	auth.Post("/login", h.Auth.Login)
+
+	// Protected routes
+	stocks := api.Group("/stocks", middleware.JWTProtected(jwtSecret))
+	stocks.Get("/", h.Stock.GetStocks)
+	stocks.Get("/:id", h.Stock.GetStockByID)
+	stocks.Get("/ticker/:ticker", h.Stock.GetStockByTicker)
+	stocks.Post("/sync", h.Stock.SyncStocks)
 }
 
 func healthCheck(c *fiber.Ctx) error {
