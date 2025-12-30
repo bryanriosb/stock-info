@@ -42,7 +42,7 @@ const router = createRouter({
       path: '/users',
       name: 'Users',
       component: () => import('@/views/users/UsersListView.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, requiresAdmin: true }
     },
     {
       path: '/:pathMatch(.*)*',
@@ -54,8 +54,11 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
+
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'Login', query: { redirect: to.fullPath } })
+  } else if (to.meta.requiresAdmin && !authStore.isAdmin) {
+    next({ name: 'Stocks' })
   } else if (to.meta.requiresGuest && authStore.isAuthenticated) {
     next({ name: 'Stocks' })
   } else {

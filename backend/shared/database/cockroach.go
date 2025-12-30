@@ -66,40 +66,21 @@ func newConnection(cfg shared.DatabaseConfig) (*gorm.DB, error) {
 	return db, nil
 }
 
-// tableExists checks if a table already exists in the database
-func tableExists(db *gorm.DB, tableName string) bool {
-	var count int64
-	db.Raw("SELECT count(*) FROM information_schema.tables WHERE table_schema = CURRENT_SCHEMA() AND table_name = ? AND table_type = 'BASE TABLE'", tableName).Scan(&count)
-	return count > 0
-}
-
-// RunMigrations runs database migrations only if tables don't exist
+// RunMigrations runs database migrations (adds missing columns, creates missing tables)
 func RunMigrations(db *gorm.DB, models ...interface{}) error {
-	needsMigration := false
+	log.Println("Running database migrations...")
+
+	// Disable foreign key constraints during migration for CockroachDB compatibility
+	migrator := db.Migrator()
 
 	for _, model := range models {
-		tableName := ""
-		if tabler, ok := model.(interface{ TableName() string }); ok {
-			tableName = tabler.TableName()
-		}
-
-		if tableName != "" && !tableExists(db, tableName) {
-			needsMigration = true
-			log.Printf("Table '%s' does not exist, migration needed", tableName)
-			break
+		if !migrator.HasTable(model) {
+			if err := migrator.CreateTable(model); err != nil {
+				return fmt.Errorf("failed to create table: %w", err)
+			}
 		}
 	}
 
-	if !needsMigration {
-		log.Println("All tables exist, skipping migrations")
-		return nil
-	}
-
-	log.Println("Running database migrations...")
-	if err := db.AutoMigrate(models...); err != nil {
-		return fmt.Errorf("failed to run migrations: %w", err)
-	}
 	log.Println("Migrations completed successfully")
-
 	return nil
 }

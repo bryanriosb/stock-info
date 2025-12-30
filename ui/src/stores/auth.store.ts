@@ -2,16 +2,27 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi } from '@/api/auth.api'
 import { CookieManager } from '@/lib/cookies'
+import { decodeJwtPayload } from '@/lib/jwt'
 import type { LoginRequest, RegisterRequest } from '@/types/auth.types'
-import type { User } from '@/types/user.types'
+import type { User, Role } from '@/types/user.types'
 
 export const useAuthStore = defineStore('auth', () => {
-  const token = ref<string | null>(CookieManager.getToken())
+  const accessToken = ref<string | null>(CookieManager.getAccessToken())
   const user = ref<User | null>(null)
+  const username = ref<string | null>(null)
+  const email = ref<string | null>(null)
+  const role = ref<Role | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  const isAuthenticated = computed(() => !!token.value && !CookieManager.isTokenExpired())
+  const isAuthenticated = computed(() => {
+    return !!accessToken.value || !!CookieManager.getRefreshToken()
+  })
+  const isAdmin = computed(() => role.value === 'admin')
+  const userInitials = computed(() => {
+    if (!username.value) return '?'
+    return username.value.slice(0, 2).toUpperCase()
+  })
 
   async function login(credentials: LoginRequest) {
     loading.value = true
@@ -19,8 +30,18 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await authApi.login(credentials)
       if (response.data.success) {
-        token.value = response.data.data.token
-        CookieManager.setToken(response.data.data.token, response.data.data.expires_in)
+        const data = response.data.data
+        accessToken.value = data.access_token
+        CookieManager.setTokens(
+          data.access_token,
+          data.refresh_token,
+          data.expires_in,
+          data.refresh_expires_in
+        )
+        const payload = decodeJwtPayload(data.access_token)
+        username.value = payload?.sub || null
+        email.value = payload?.email || null
+        role.value = payload?.role || 'user'
         return true
       }
       error.value = response.data.error || 'Login failed'
@@ -52,20 +73,53 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function logout() {
-    token.value = null
+  async function logout() {
+    const refreshToken = CookieManager.getRefreshToken()
+    if (refreshToken) {
+      try {
+        await authApi.logout({ refresh_token: refreshToken })
+      } catch {
+        // Ignore logout errors
+      }
+    }
+    accessToken.value = null
     user.value = null
-    CookieManager.clearToken()
+    username.value = null
+    email.value = null
+    role.value = null
+    CookieManager.clearTokens()
   }
 
   function checkAuth() {
-    const storedToken = CookieManager.getToken()
-    if (storedToken && !CookieManager.isTokenExpired()) {
-      token.value = storedToken
+    const storedToken = CookieManager.getAccessToken()
+    if (storedToken) {
+      accessToken.value = storedToken
+      const payload = decodeJwtPayload(storedToken)
+      username.value = payload?.sub || null
+      email.value = payload?.email || null
+      role.value = payload?.role || 'user'
+    } else if (CookieManager.getRefreshToken()) {
+      // Has refresh token but no access token - will be refreshed on next API call
+      accessToken.value = null
     } else {
       logout()
     }
   }
 
-  return { token, user, loading, error, isAuthenticated, login, register, logout, checkAuth }
+  return {
+    accessToken,
+    user,
+    username,
+    email,
+    role,
+    loading,
+    error,
+    isAuthenticated,
+    isAdmin,
+    userInitials,
+    login,
+    register,
+    logout,
+    checkAuth,
+  }
 })

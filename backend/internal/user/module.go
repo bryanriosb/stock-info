@@ -4,6 +4,7 @@ import (
 	"github.com/bryanriosb/stock-info/internal/user/application"
 	"github.com/bryanriosb/stock-info/internal/user/infrastructure"
 	"github.com/bryanriosb/stock-info/internal/user/interfaces"
+	"github.com/bryanriosb/stock-info/shared/middleware"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 )
@@ -22,8 +23,8 @@ func RegisterPublicOnly(publicRouter fiber.Router, db *gorm.DB) application.User
 func RegisterProtected(protectedRouter fiber.Router, useCase application.UserUseCase) {
 	handler := interfaces.NewHandler(useCase)
 
-	// Protected routes
-	users := protectedRouter.Group("/users")
+	// Admin-only routes
+	users := protectedRouter.Group("/users", middleware.RequireAdmin())
 	users.Get("/", handler.GetAll)
 	users.Get("/:id", handler.GetByID)
 	users.Put("/:id", handler.Update)

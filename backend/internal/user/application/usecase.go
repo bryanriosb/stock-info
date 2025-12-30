@@ -56,6 +56,7 @@ func (uc *userUseCase) Create(ctx context.Context, req CreateUserRequest) (*doma
 	user := &domain.User{
 		Username: req.Username,
 		Email:    req.Email,
+		Role:     domain.RoleUser,
 	}
 
 	if err := user.SetPassword(req.Password); err != nil {

@@ -6,13 +6,25 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type Role string
+
+const (
+	RoleUser  Role = "user"
+	RoleAdmin Role = "admin"
+)
+
 type User struct {
 	ID        int64     `json:"id" gorm:"primaryKey;autoIncrement"`
 	Username  string    `json:"username" gorm:"size:50;uniqueIndex;not null"`
 	Email     string    `json:"email" gorm:"size:255;uniqueIndex;not null"`
 	Password  string    `json:"-" gorm:"size:255;not null"`
+	Role      Role      `json:"role" gorm:"size:20;not null;default:'user'"`
 	CreatedAt time.Time `json:"created_at" gorm:"type:timestamp;autoCreateTime"`
 	UpdatedAt time.Time `json:"updated_at" gorm:"type:timestamp;autoUpdateTime"`
+}
+
+func (u *User) IsAdmin() bool {
+	return u.Role == RoleAdmin
 }
 
 func (User) TableName() string {

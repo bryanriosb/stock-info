@@ -1,63 +1,69 @@
-// Cookie utilities for secure token management
 export class CookieManager {
-  private static readonly TOKEN_KEY = 'auth_token'
-  private static readonly TOKEN_EXPIRY_KEY = 'auth_token_expiry'
-  
-  /**
-   * Set authentication token as a secure cookie
-   */
-  static setToken(token: string, expiresIn: number) {
-    // Store token expiry in localStorage for client-side validation
-    const expiry = new Date().getTime() + (expiresIn * 1000)
-    localStorage.setItem(this.TOKEN_EXPIRY_KEY, expiry.toString())
+  private static readonly ACCESS_TOKEN_KEY = 'access_token'
+  private static readonly REFRESH_TOKEN_KEY = 'refresh_token'
+  private static readonly ACCESS_EXPIRY_KEY = 'access_token_expiry'
+  private static readonly REFRESH_EXPIRY_KEY = 'refresh_token_expiry'
 
-    // Store token in cookie
-    this.setClientCookie(this.TOKEN_KEY, token, expiresIn)
+  static setTokens(
+    accessToken: string,
+    refreshToken: string,
+    expiresIn: number,
+    refreshExpiresIn: number
+  ) {
+    const accessExpiry = new Date().getTime() + expiresIn * 1000
+    const refreshExpiry = new Date().getTime() + refreshExpiresIn * 1000
+
+    localStorage.setItem(this.ACCESS_EXPIRY_KEY, accessExpiry.toString())
+    localStorage.setItem(this.REFRESH_EXPIRY_KEY, refreshExpiry.toString())
+
+    this.setClientCookie(this.ACCESS_TOKEN_KEY, accessToken, expiresIn)
+    this.setClientCookie(this.REFRESH_TOKEN_KEY, refreshToken, refreshExpiresIn)
   }
 
-  /**
-   * Get authentication token
-   */
-  static getToken(): string | null {
-    // Check if token has expired
-    if (this.isTokenExpired()) {
-      this.clearToken()
+  static getAccessToken(): string | null {
+    if (this.isAccessTokenExpired()) {
       return null
     }
-
-    return this.getClientCookie(this.TOKEN_KEY)
+    return this.getClientCookie(this.ACCESS_TOKEN_KEY)
   }
 
-  /**
-   * Clear authentication token
-   */
-  static clearToken() {
-    localStorage.removeItem(this.TOKEN_EXPIRY_KEY)
-    this.deleteClientCookie(this.TOKEN_KEY)
+  static getRefreshToken(): string | null {
+    if (this.isRefreshTokenExpired()) {
+      this.clearTokens()
+      return null
+    }
+    return this.getClientCookie(this.REFRESH_TOKEN_KEY)
   }
 
-  /**
-   * Check if token is expired
-   */
-  static isTokenExpired(): boolean {
-    const expiry = localStorage.getItem(this.TOKEN_EXPIRY_KEY)
+  static clearTokens() {
+    localStorage.removeItem(this.ACCESS_EXPIRY_KEY)
+    localStorage.removeItem(this.REFRESH_EXPIRY_KEY)
+    this.deleteClientCookie(this.ACCESS_TOKEN_KEY)
+    this.deleteClientCookie(this.REFRESH_TOKEN_KEY)
+  }
+
+  static isAccessTokenExpired(): boolean {
+    const expiry = localStorage.getItem(this.ACCESS_EXPIRY_KEY)
     if (!expiry) return true
-    
     return new Date().getTime() > parseInt(expiry)
   }
 
-  /**
-   * Set a client-side cookie (for development)
-   */
+  static isRefreshTokenExpired(): boolean {
+    const expiry = localStorage.getItem(this.REFRESH_EXPIRY_KEY)
+    if (!expiry) return true
+    return new Date().getTime() > parseInt(expiry)
+  }
+
+  static canRefresh(): boolean {
+    return this.isAccessTokenExpired() && !this.isRefreshTokenExpired()
+  }
+
   private static setClientCookie(name: string, value: string, maxAge: number) {
     document.cookie = `${name}=${value}; max-age=${maxAge}; path=/; secure=${location.protocol === 'https:'}; samesite=strict`
   }
 
-  /**
-   * Get a client-side cookie
-   */
   private static getClientCookie(name: string): string | null {
-    const nameEQ = name + "="
+    const nameEQ = name + '='
     const ca = document.cookie.split(';')
     for (let i = 0; i < ca.length; i++) {
       let c = ca[i]
@@ -67,9 +73,6 @@ export class CookieManager {
     return null
   }
 
-  /**
-   * Delete a client-side cookie
-   */
   private static deleteClientCookie(name: string) {
     document.cookie = `${name}=; max-age=-1; path=/`
   }

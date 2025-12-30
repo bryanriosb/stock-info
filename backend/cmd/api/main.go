@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	authDomain "github.com/bryanriosb/stock-info/internal/auth/domain"
 	stockDomain "github.com/bryanriosb/stock-info/internal/stock/domain"
 	userDomain "github.com/bryanriosb/stock-info/internal/user/domain"
 	"github.com/bryanriosb/stock-info/shared"
@@ -18,8 +19,12 @@ func main() {
 	}
 	defer database.Close()
 
-	if err := database.RunMigrations(database.DB(), &stockDomain.Stock{}, &userDomain.User{}); err != nil {
+	if err := database.RunMigrations(database.DB(), &stockDomain.Stock{}, &userDomain.User{}, &authDomain.RefreshToken{}); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
+	}
+
+	if err := database.SeedAdmin(database.DB(), cfg.Admin); err != nil {
+		log.Fatalf("Failed to seed admin user: %v", err)
 	}
 
 	log.Println("Database connected and migrations completed")

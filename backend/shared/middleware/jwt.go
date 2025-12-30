@@ -23,3 +23,25 @@ func GetUserFromToken(c *fiber.Ctx) string {
 	claims := token.Claims.(jwt.MapClaims)
 	return claims["sub"].(string)
 }
+
+func GetRoleFromToken(c *fiber.Ctx) string {
+	token := c.Locals("user").(*jwt.Token)
+	claims := token.Claims.(jwt.MapClaims)
+	if role, ok := claims["role"].(string); ok {
+		return role
+	}
+	return "user"
+}
+
+func RequireAdmin() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		role := GetRoleFromToken(c)
+		if role != "admin" {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"success": false,
+				"error":   "Admin access required",
+			})
+		}
+		return c.Next()
+	}
+}
