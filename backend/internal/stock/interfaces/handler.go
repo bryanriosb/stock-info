@@ -1,12 +1,18 @@
 package interfaces
 
 import (
+	"bufio"
+	"encoding/json"
+	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/bryanriosb/stock-info/internal/stock/application"
 	"github.com/bryanriosb/stock-info/internal/stock/domain"
+	"github.com/bryanriosb/stock-info/internal/stock/infrastructure"
 	"github.com/bryanriosb/stock-info/shared/response"
 	"github.com/gofiber/fiber/v2"
+	"github.com/valyala/fasthttp"
 )
 
 type Handler struct {
@@ -77,14 +83,49 @@ func (h *Handler) GetStockByTicker(c *fiber.Ctx) error {
 	return response.Success(c, stocks)
 }
 
-func (h *Handler) SyncStocks(c *fiber.Ctx) error {
-	count, err := h.useCase.SyncStocks(c.Context())
-	if err != nil {
-		return response.InternalError(c, "Failed to sync stocks: "+err.Error())
-	}
+// SyncStocksStream handles SSE streaming for stock sync with progress
+func (h *Handler) SyncStocksStream(c *fiber.Ctx) error {
+	c.Set("Content-Type", "text/event-stream")
+	c.Set("Cache-Control", "no-cache")
+	c.Set("Connection", "keep-alive")
+	c.Set("Transfer-Encoding", "chunked")
+	c.Set("Access-Control-Allow-Origin", "*")
 
-	return response.Success(c, fiber.Map{
-		"message": "Stocks synced successfully",
-		"count":   count,
-	})
+	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
+		// Send initial event
+		fmt.Fprintf(w, "data: %s\n\n", mustJSON(infrastructure.SyncProgress{
+			Percent: 0,
+			Status:  "starting",
+			Message: "Starting sync...",
+		}))
+		w.Flush()
+
+		// Create progress callback
+		onProgress := func(progress infrastructure.SyncProgress) {
+			data := mustJSON(progress)
+			fmt.Fprintf(w, "data: %s\n\n", data)
+			w.Flush()
+		}
+
+		// Run sync with progress
+		_, err := h.useCase.SyncStocksWithProgress(c.Context(), onProgress)
+		if err != nil {
+			fmt.Fprintf(w, "data: %s\n\n", mustJSON(infrastructure.SyncProgress{
+				Status:  "error",
+				Message: err.Error(),
+			}))
+			w.Flush()
+			return
+		}
+
+		// Small delay to ensure client receives final message
+		time.Sleep(100 * time.Millisecond)
+	}))
+
+	return nil
+}
+
+func mustJSON(v interface{}) string {
+	data, _ := json.Marshal(v)
+	return string(data)
 }

@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 
 	"github.com/bryanriosb/stock-info/shared"
@@ -108,11 +109,38 @@ func ensureDatabaseExists(cfg shared.DatabaseConfig) error {
 func RunAutoMigrate(db *gorm.DB, models ...interface{}) error {
 	log.Println("Running GORM AutoMigrate (development mode)...")
 
-	if err := db.AutoMigrate(models...); err != nil {
-		return fmt.Errorf("failed to run auto-migrate: %w", err)
+	// For each model, check if table exists and handle migration carefully
+	for _, model := range models {
+		if err := safeAutoMigrate(db, model); err != nil {
+			return fmt.Errorf("failed to run auto-migrate: %w", err)
+		}
 	}
 
 	log.Println("AutoMigrate completed successfully")
+	return nil
+}
+
+// safeAutoMigrate handles CockroachDB-specific migration issues
+func safeAutoMigrate(db *gorm.DB, model interface{}) error {
+	migrator := db.Migrator()
+
+	// If table doesn't exist, create it normally
+	if !migrator.HasTable(model) {
+		return db.AutoMigrate(model)
+	}
+
+	// Table exists - try to migrate, but handle constraint errors gracefully
+	err := db.AutoMigrate(model)
+	if err != nil {
+		errStr := err.Error()
+		// Ignore "constraint does not exist" errors - these happen when GORM
+		// tries to drop constraints that were created with different names
+		if strings.Contains(errStr, "does not exist") && strings.Contains(errStr, "constraint") {
+			log.Printf("Warning: Ignoring constraint error during migration (table already configured): %v", err)
+			return nil
+		}
+		return err
+	}
 	return nil
 }
 

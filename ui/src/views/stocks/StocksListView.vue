@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStocksStore } from '@/stores/stocks.store'
 import { toast } from '@/components/ui/sonner'
@@ -9,9 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Progress } from '@/components/ui/progress'
 import Pagination from '@/components/Pagination.vue'
 import RatingBadge from '@/components/RatingBadge.vue'
-import { RefreshCw, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-vue-next'
+import { RefreshCw, Search, X, ArrowUpDown, ArrowUp, ArrowDown, StopCircle } from 'lucide-vue-next'
 import type { Stock } from '@/types/stock.types'
 
 const router = useRouter()
@@ -21,16 +22,32 @@ const filters = ref({ ticker: '', company: '' })
 
 onMounted(() => store.fetchStocks())
 
+// Watch for sync completion to show toast
+watch(() => store.syncProgress, (progress, oldProgress) => {
+  if (oldProgress?.status === 'saving' && progress === null) {
+    toast({ title: 'Sync Complete', description: 'Stocks synced successfully' })
+  }
+})
+
+watch(() => store.error, (error) => {
+  if (error && store.syncProgress === null) {
+    toast({ title: 'Sync Failed', description: error, variant: 'destructive' })
+  }
+})
+
 function handleSort(field: string) { store.setSort(field) }
 function handlePageChange(page: number) { store.setPage(page) }
 function handleSearch() { store.setFilters(filters.value) }
 function handleClear() { filters.value = { ticker: '', company: '' }; store.clearFilters() }
 function handleRowClick(stock: Stock) { router.push(`/stocks/${stock.id}`) }
 
-async function handleSync() {
-  const count = await store.syncStocks()
-  if (count > 0) toast({ title: 'Sync Complete', description: `Synced ${count} stocks` })
-  else if (store.error) toast({ title: 'Sync Failed', description: store.error, variant: 'destructive' })
+function handleSync() {
+  store.syncStocks()
+}
+
+function handleCancelSync() {
+  store.cancelSync()
+  toast({ title: 'Sync Cancelled', description: 'Stock sync was cancelled' })
 }
 
 function formatCurrency(v: number) {
@@ -50,10 +67,26 @@ function getSortIcon(field: string) {
         <h1 class="text-3xl font-bold tracking-tight">Stocks</h1>
         <p class="text-muted-foreground">Manage and analyze stock recommendations</p>
       </div>
-      <Button @click="handleSync" :disabled="store.syncing" class="gradient-coral text-white">
-        <RefreshCw class="mr-2 h-4 w-4" :class="{ 'animate-spin': store.syncing }" />
-        {{ store.syncing ? 'Syncing...' : 'Sync from API' }}
-      </Button>
+      <div class="flex flex-col items-end gap-2">
+        <div class="flex gap-2">
+          <Button @click="handleSync" :disabled="store.syncing" class="gradient-coral text-white">
+            <RefreshCw class="mr-2 h-4 w-4" :class="{ 'animate-spin': store.syncing }" />
+            {{ store.syncing ? 'Syncing...' : 'Sync from API' }}
+          </Button>
+          <Button v-if="store.syncing" variant="outline" @click="handleCancelSync">
+            <StopCircle class="mr-2 h-4 w-4" />
+            Cancel
+          </Button>
+        </div>
+        <!-- Progress bar -->
+        <div v-if="store.syncProgress" class="w-64 space-y-1">
+          <div class="flex justify-between text-xs text-muted-foreground">
+            <span>{{ store.syncProgress.message }}</span>
+            <span>{{ store.syncProgress.percent }}%</span>
+          </div>
+          <Progress :model-value="store.syncProgress.percent" class="h-2" />
+        </div>
+      </div>
     </div>
 
     <Card>

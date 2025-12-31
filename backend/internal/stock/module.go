@@ -17,7 +17,7 @@ func Register(app fiber.Router, db *gorm.DB, cfg *shared.Config) {
 
 	group := app.Group("/stocks")
 	group.Get("/", handler.GetStocks)
+	group.Get("/sync-stream", handler.SyncStocksStream) // SSE endpoint - must be before :id
 	group.Get("/:id", handler.GetStockByID)
 	group.Get("/ticker/:ticker", handler.GetStockByTicker)
-	group.Post("/sync", handler.SyncStocks)
 }

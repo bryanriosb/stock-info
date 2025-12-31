@@ -13,9 +13,22 @@ import (
 	"github.com/bryanriosb/stock-info/shared"
 )
 
+// SyncProgress represents the current sync progress
+type SyncProgress struct {
+	Current int `json:"current"`
+	Total   int `json:"total"`
+	Percent int `json:"percent"`
+	Status  string `json:"status"` // "fetching", "saving", "completed", "error"
+	Message string `json:"message,omitempty"`
+}
+
+// ProgressCallback is called during sync to report progress
+type ProgressCallback func(progress SyncProgress)
+
 type StockAPIClient interface {
 	FetchStocks(ctx context.Context, nextPage string) (*StockAPIResponse, error)
 	FetchAllStocks(ctx context.Context) ([]*domain.Stock, error)
+	FetchAllStocksWithProgress(ctx context.Context, onProgress ProgressCallback) ([]*domain.Stock, error)
 }
 
 type StockAPIResponse struct {
@@ -83,12 +96,39 @@ func (c *stockAPIClient) FetchStocks(ctx context.Context, nextPage string) (*Sto
 }
 
 func (c *stockAPIClient) FetchAllStocks(ctx context.Context) ([]*domain.Stock, error) {
+	return c.FetchAllStocksWithProgress(ctx, nil)
+}
+
+func (c *stockAPIClient) FetchAllStocksWithProgress(ctx context.Context, onProgress ProgressCallback) ([]*domain.Stock, error) {
 	var allStocks []*domain.Stock
 	nextPage := ""
+	pageCount := 0
+
+	// Estimate total pages (we'll update as we go)
+	estimatedTotal := 100 // Initial estimate
 
 	for {
+		pageCount++
+
+		if onProgress != nil {
+			percent := min((pageCount*100)/estimatedTotal, 95) // Cap at 95% during fetch
+			onProgress(SyncProgress{
+				Current: len(allStocks),
+				Total:   estimatedTotal * 50, // Rough estimate of items per page
+				Percent: percent,
+				Status:  "fetching",
+				Message: fmt.Sprintf("Fetching page %d...", pageCount),
+			})
+		}
+
 		response, err := c.FetchStocks(ctx, nextPage)
 		if err != nil {
+			if onProgress != nil {
+				onProgress(SyncProgress{
+					Status:  "error",
+					Message: err.Error(),
+				})
+			}
 			return nil, err
 		}
 
@@ -101,6 +141,12 @@ func (c *stockAPIClient) FetchAllStocks(ctx context.Context) ([]*domain.Stock, e
 			break
 		}
 		nextPage = response.NextPage
+
+		// Update estimate based on progress
+		if pageCount == 1 && len(response.Items) > 0 {
+			// After first page, estimate total pages better
+			estimatedTotal = max(pageCount+10, 50)
+		}
 	}
 
 	return allStocks, nil

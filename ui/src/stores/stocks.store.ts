@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { stocksApi } from '@/api/stocks.api'
+import { stocksApi, type SyncProgress } from '@/api/stocks.api'
 import type { Stock, StockQueryParams } from '@/types/stock.types'
 import type { PaginationMeta } from '@/types/api.types'
 
@@ -9,9 +9,12 @@ export const useStocksStore = defineStore('stocks', () => {
   const currentStock = ref<Stock | null>(null)
   const loading = ref(false)
   const syncing = ref(false)
+  const syncProgress = ref<SyncProgress | null>(null)
   const error = ref<string | null>(null)
   const meta = ref<PaginationMeta | null>(null)
   const queryParams = ref<StockQueryParams>({ page: 1, limit: 20, sort_by: 'id', sort_dir: 'asc' })
+
+  let abortSync: (() => void) | null = null
 
   async function fetchStocks(params?: StockQueryParams) {
     loading.value = true
@@ -48,22 +51,41 @@ export const useStocksStore = defineStore('stocks', () => {
     }
   }
 
-  async function syncStocks() {
+  function syncStocks() {
+    if (syncing.value) return
+
     syncing.value = true
     error.value = null
-    try {
-      const res = await stocksApi.sync()
-      if (res.data.success) {
+    syncProgress.value = { current: 0, total: 0, percent: 0, status: 'starting', message: 'Connecting...' }
+
+    abortSync = stocksApi.syncStream(
+      // onProgress
+      (progress) => {
+        syncProgress.value = progress
+      },
+      // onComplete
+      async () => {
+        syncing.value = false
+        syncProgress.value = null
+        abortSync = null
         await fetchStocks()
-        return res.data.data.count
+      },
+      // onError
+      (err) => {
+        error.value = err
+        syncing.value = false
+        syncProgress.value = null
+        abortSync = null
       }
-      error.value = res.data.error || 'Sync failed'
-      return 0
-    } catch (err: any) {
-      error.value = err.response?.data?.error || 'Error'
-      return 0
-    } finally {
+    )
+  }
+
+  function cancelSync() {
+    if (abortSync) {
+      abortSync()
+      abortSync = null
       syncing.value = false
+      syncProgress.value = null
     }
   }
 
@@ -92,5 +114,5 @@ export const useStocksStore = defineStore('stocks', () => {
     fetchStocks()
   }
 
-  return { stocks, currentStock, loading, syncing, error, meta, queryParams, fetchStocks, fetchStockById, syncStocks, setSort, setPage, setFilters, clearFilters }
+  return { stocks, currentStock, loading, syncing, syncProgress, error, meta, queryParams, fetchStocks, fetchStockById, syncStocks, cancelSync, setSort, setPage, setFilters, clearFilters }
 })
