@@ -2,13 +2,12 @@
 import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStocksStore } from '@/stores/stocks.store'
-import { toast } from '@/components/ui/sonner'
+import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
 import Pagination from '@/components/Pagination.vue'
 import RatingBadge from '@/components/RatingBadge.vue'
@@ -17,6 +16,7 @@ import type { Stock } from '@/types/stock.types'
 
 const router = useRouter()
 const store = useStocksStore()
+const { toast } = useToast()
 
 const filters = ref({ ticker: '', company: '' })
 
@@ -30,8 +30,9 @@ watch(() => store.syncProgress, (progress, oldProgress) => {
 })
 
 watch(() => store.error, (error) => {
-  if (error && store.syncProgress === null) {
-    toast({ title: 'Sync Failed', description: error, variant: 'destructive' })
+  if (error) {
+    toast({ title: 'Error', description: error, variant: 'destructive' })
+    store.error = null
   }
 })
 
@@ -108,8 +109,6 @@ function getSortIcon(field: string) {
         </form>
       </CardContent>
     </Card>
-
-    <Alert v-if="store.error" variant="destructive"><AlertDescription>{{ store.error }}</AlertDescription></Alert>
 
     <Card>
       <CardContent class="p-0">

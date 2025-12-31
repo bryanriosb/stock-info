@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
+import { onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStocksStore } from '@/stores/stocks.store'
+import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import RatingBadge from '@/components/RatingBadge.vue'
 import { ArrowLeft, TrendingUp, TrendingDown, ArrowRight, Calendar, DollarSign } from 'lucide-vue-next'
@@ -13,9 +13,17 @@ import { ArrowLeft, TrendingUp, TrendingDown, ArrowRight, Calendar, DollarSign }
 const route = useRoute()
 const router = useRouter()
 const store = useStocksStore()
+const { toast } = useToast()
 
 const stockId = computed(() => route.params.id as string)
 onMounted(() => store.fetchStockById(stockId.value))
+
+watch(() => store.error, (error) => {
+  if (error) {
+    toast({ title: 'Error', description: error, variant: 'destructive' })
+    store.error = null
+  }
+})
 
 const priceChange = computed(() => {
   if (!store.currentStock) return 0
@@ -42,8 +50,6 @@ function formatDate(d: string) {
       <Card class="lg:col-span-2"><CardContent class="p-6"><Skeleton class="h-32 w-full" /></CardContent></Card>
       <Card><CardContent class="p-6"><Skeleton class="h-32 w-full" /></CardContent></Card>
     </div>
-
-    <Alert v-else-if="store.error" variant="destructive"><AlertDescription>{{ store.error }}</AlertDescription></Alert>
 
     <template v-else-if="store.currentStock">
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -45,7 +45,9 @@ services:
       - ./ui:/app
       - node-modules:/app/node_modules
     environment:
-      - VITE_API_URL=http://localhost:5000/api/v1
+      # Empty to use /api/v1 relative path - Vite proxy routes to backend
+      - VITE_API_URL=
+      - DOCKER_ENV=true
     depends_on:
       - backend
     networks:

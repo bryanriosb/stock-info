@@ -71,6 +71,14 @@ func (m *MockStockAPIClient) FetchAllStocks(ctx context.Context) ([]*domain.Stoc
 	return args.Get(0).([]*domain.Stock), args.Error(1)
 }
 
+func (m *MockStockAPIClient) FetchAllStocksWithProgress(ctx context.Context, onProgress infrastructure.ProgressCallback) ([]*domain.Stock, error) {
+	args := m.Called(ctx, onProgress)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*domain.Stock), args.Error(1)
+}
+
 func TestSyncStocks_Success(t *testing.T) {
 	mockRepo := new(MockStockRepository)
 	mockAPI := new(MockStockAPIClient)
@@ -80,7 +88,7 @@ func TestSyncStocks_Success(t *testing.T) {
 		{Ticker: "GOOGL", Company: "Alphabet Inc."},
 	}
 
-	mockAPI.On("FetchAllStocks", mock.Anything).Return(stocks, nil)
+	mockAPI.On("FetchAllStocksWithProgress", mock.Anything, mock.Anything).Return(stocks, nil)
 	mockRepo.On("CreateBatch", mock.Anything, stocks).Return(nil)
 
 	uc := NewStockUseCase(mockRepo, mockAPI)
@@ -96,7 +104,7 @@ func TestSyncStocks_APIError(t *testing.T) {
 	mockRepo := new(MockStockRepository)
 	mockAPI := new(MockStockAPIClient)
 
-	mockAPI.On("FetchAllStocks", mock.Anything).Return(nil, errors.New("API error"))
+	mockAPI.On("FetchAllStocksWithProgress", mock.Anything, mock.Anything).Return(nil, errors.New("API error"))
 
 	uc := NewStockUseCase(mockRepo, mockAPI)
 	count, err := uc.SyncStocks(context.Background())
@@ -114,7 +122,7 @@ func TestSyncStocks_RepoError(t *testing.T) {
 		{Ticker: "AAPL", Company: "Apple Inc."},
 	}
 
-	mockAPI.On("FetchAllStocks", mock.Anything).Return(stocks, nil)
+	mockAPI.On("FetchAllStocksWithProgress", mock.Anything, mock.Anything).Return(stocks, nil)
 	mockRepo.On("CreateBatch", mock.Anything, stocks).Return(errors.New("DB error"))
 
 	uc := NewStockUseCase(mockRepo, mockAPI)

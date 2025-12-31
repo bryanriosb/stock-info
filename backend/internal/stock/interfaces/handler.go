@@ -2,8 +2,10 @@ package interfaces
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -86,12 +88,20 @@ func (h *Handler) GetStockByTicker(c *fiber.Ctx) error {
 // SyncStocksStream handles SSE streaming for stock sync with progress
 func (h *Handler) SyncStocksStream(c *fiber.Ctx) error {
 	c.Set("Content-Type", "text/event-stream")
-	c.Set("Cache-Control", "no-cache")
+	c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	c.Set("Connection", "keep-alive")
-	c.Set("Transfer-Encoding", "chunked")
 	c.Set("Access-Control-Allow-Origin", "*")
+	c.Set("X-Accel-Buffering", "no")
+	// Don't set Transfer-Encoding manually - let Fiber handle it
 
 	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
+		// Create a new context for the sync operation since the fiber context
+		// becomes invalid inside the StreamWriter goroutine
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+
+		log.Println("Starting stock sync from external API...")
+
 		// Send initial event
 		fmt.Fprintf(w, "data: %s\n\n", mustJSON(infrastructure.SyncProgress{
 			Percent: 0,
@@ -100,26 +110,69 @@ func (h *Handler) SyncStocksStream(c *fiber.Ctx) error {
 		}))
 		w.Flush()
 
-		// Create progress callback
+		// Channel to receive progress updates
+		progressChan := make(chan infrastructure.SyncProgress, 100)
+		doneChan := make(chan error, 1)
+
+		// Create progress callback that sends to channel
 		onProgress := func(progress infrastructure.SyncProgress) {
-			data := mustJSON(progress)
-			fmt.Fprintf(w, "data: %s\n\n", data)
-			w.Flush()
+			select {
+			case progressChan <- progress:
+			default:
+				// Channel full, skip this update
+			}
 		}
 
-		// Run sync with progress
-		_, err := h.useCase.SyncStocksWithProgress(c.Context(), onProgress)
-		if err != nil {
-			fmt.Fprintf(w, "data: %s\n\n", mustJSON(infrastructure.SyncProgress{
-				Status:  "error",
-				Message: err.Error(),
-			}))
-			w.Flush()
-			return
-		}
+		// Run sync in goroutine
+		go func() {
+			_, err := h.useCase.SyncStocksWithProgress(ctx, onProgress)
+			doneChan <- err
+		}()
 
-		// Small delay to ensure client receives final message
-		time.Sleep(100 * time.Millisecond)
+		// Heartbeat ticker to keep connection alive
+		heartbeat := time.NewTicker(10 * time.Second)
+		defer heartbeat.Stop()
+
+		var lastProgress infrastructure.SyncProgress
+
+		for {
+			select {
+			case progress := <-progressChan:
+				lastProgress = progress
+				fmt.Fprintf(w, "data: %s\n\n", mustJSON(progress))
+				w.Flush()
+
+			case <-heartbeat.C:
+				// Send heartbeat comment to keep connection alive
+				fmt.Fprintf(w, ": heartbeat\n\n")
+				w.Flush()
+
+			case err := <-doneChan:
+				if err != nil {
+					fmt.Fprintf(w, "data: %s\n\n", mustJSON(infrastructure.SyncProgress{
+						Status:  "error",
+						Message: err.Error(),
+					}))
+				} else if lastProgress.Status != "completed" {
+					// Ensure completed message is sent
+					fmt.Fprintf(w, "data: %s\n\n", mustJSON(infrastructure.SyncProgress{
+						Percent: 100,
+						Status:  "completed",
+						Message: "Sync completed successfully",
+					}))
+				}
+				w.Flush()
+				return
+
+			case <-ctx.Done():
+				fmt.Fprintf(w, "data: %s\n\n", mustJSON(infrastructure.SyncProgress{
+					Status:  "error",
+					Message: "Sync timed out",
+				}))
+				w.Flush()
+				return
+			}
+		}
 	}))
 
 	return nil

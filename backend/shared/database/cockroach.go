@@ -129,14 +129,20 @@ func safeAutoMigrate(db *gorm.DB, model interface{}) error {
 		return db.AutoMigrate(model)
 	}
 
-	// Table exists - try to migrate, but handle constraint errors gracefully
-	err := db.AutoMigrate(model)
+	// Table exists - use a session with silent logger to suppress constraint errors
+	// that occur when GORM tries to drop constraints with auto-generated names
+	// that don't match CockroachDB's naming conventions
+	silentDB := db.Session(&gorm.Session{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
+
+	err := silentDB.AutoMigrate(model)
 	if err != nil {
 		errStr := err.Error()
 		// Ignore "constraint does not exist" errors - these happen when GORM
 		// tries to drop constraints that were created with different names
 		if strings.Contains(errStr, "does not exist") && strings.Contains(errStr, "constraint") {
-			log.Printf("Warning: Ignoring constraint error during migration (table already configured): %v", err)
+			// Silently ignore - table is already properly configured
 			return nil
 		}
 		return err

@@ -1,20 +1,28 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRecommendationsStore } from '@/stores/recommendations.store'
+import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import RatingBadge from '@/components/RatingBadge.vue'
 import { RefreshCw, TrendingUp, DollarSign, Percent, ArrowRight } from 'lucide-vue-next'
 
 const router = useRouter()
 const store = useRecommendationsStore()
+const { toast } = useToast()
 const limit = ref('10')
 
 onMounted(() => store.fetchRecommendations(Number(limit.value)))
+
+watch(() => store.error, (error) => {
+  if (error) {
+    toast({ title: 'Error', description: error, variant: 'destructive' })
+    store.error = null
+  }
+})
 
 function handleLimitChange(v: string) {
   limit.value = v
@@ -61,8 +69,6 @@ function getProgressColor(score: number) {
         </Button>
       </div>
     </div>
-
-    <Alert v-if="store.error" variant="destructive"><AlertDescription>{{ store.error }}</AlertDescription></Alert>
 
     <div v-if="store.loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <Card v-for="i in 6" :key="i"><CardContent class="p-6"><Skeleton class="h-40 w-full" /></CardContent></Card>

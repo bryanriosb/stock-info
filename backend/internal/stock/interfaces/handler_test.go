@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/bryanriosb/stock-info/internal/stock/domain"
+	"github.com/bryanriosb/stock-info/internal/stock/infrastructure"
 	"github.com/bryanriosb/stock-info/shared/response"
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
@@ -21,6 +22,11 @@ type MockStockUseCase struct {
 
 func (m *MockStockUseCase) SyncStocks(ctx context.Context) (int, error) {
 	args := m.Called(ctx)
+	return args.Int(0), args.Error(1)
+}
+
+func (m *MockStockUseCase) SyncStocksWithProgress(ctx context.Context, onProgress infrastructure.ProgressCallback) (int, error) {
+	args := m.Called(ctx, onProgress)
 	return args.Int(0), args.Error(1)
 }
 
@@ -53,7 +59,7 @@ func setupTestApp(handler *Handler) *fiber.App {
 	app.Get("/stocks", handler.GetStocks)
 	app.Get("/stocks/:id", handler.GetStockByID)
 	app.Get("/stocks/ticker/:ticker", handler.GetStockByTicker)
-	app.Post("/stocks/sync", handler.SyncStocks)
+	// Note: SyncStocksStream is SSE and tested separately
 	return app
 }
 
@@ -211,43 +217,6 @@ func TestGetStockByTicker_Error(t *testing.T) {
 	mockUC.AssertExpectations(t)
 }
 
-func TestSyncStocks_Success(t *testing.T) {
-	mockUC := new(MockStockUseCase)
-	handler := NewHandler(mockUC)
-	app := setupTestApp(handler)
-
-	mockUC.On("SyncStocks", mock.Anything).Return(100, nil)
-
-	req := httptest.NewRequest("POST", "/stocks/sync", nil)
-	resp, err := app.Test(req)
-
-	assert.NoError(t, err)
-	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
-
-	var result response.Response
-	json.NewDecoder(resp.Body).Decode(&result)
-
-	assert.True(t, result.Success)
-	mockUC.AssertExpectations(t)
-}
-
-func TestSyncStocks_Error(t *testing.T) {
-	mockUC := new(MockStockUseCase)
-	handler := NewHandler(mockUC)
-	app := setupTestApp(handler)
-
-	mockUC.On("SyncStocks", mock.Anything).Return(0, errors.New("API error"))
-
-	req := httptest.NewRequest("POST", "/stocks/sync", nil)
-	resp, err := app.Test(req)
-
-	assert.NoError(t, err)
-	assert.Equal(t, fiber.StatusInternalServerError, resp.StatusCode)
-
-	var result response.Response
-	json.NewDecoder(resp.Body).Decode(&result)
-
-	assert.False(t, result.Success)
-	assert.Contains(t, result.Error, "Failed to sync stocks")
-	mockUC.AssertExpectations(t)
-}
+// Note: SyncStocksStream uses SSE (Server-Sent Events) which requires
+// integration tests rather than unit tests. The streaming nature of SSE
+// makes it difficult to test with httptest.

@@ -3,7 +3,7 @@ import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import { Toaster } from '@/components/ui/sonner'
+import { Toaster } from '@/components/ui/toast'
 
 const route = useRoute()
 const authStore = useAuthStore()
