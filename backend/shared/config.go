@@ -6,11 +6,20 @@ import (
 )
 
 type Config struct {
+	Env      string
 	Server   ServerConfig
 	Database DatabaseConfig
 	JWT      JWTConfig
 	StockAPI StockAPIConfig
 	Admin    AdminConfig
+}
+
+func (c *Config) IsDevelopment() bool {
+	return c.Env == "development" || c.Env == ""
+}
+
+func (c *Config) IsProduction() bool {
+	return c.Env == "production"
 }
 
 type AdminConfig struct {
@@ -45,8 +54,9 @@ type StockAPIConfig struct {
 
 func LoadConfig() *Config {
 	return &Config{
+		Env: getEnv("APP_ENV", "development"),
 		Server: ServerConfig{
-			Port: getEnv("SERVER_PORT", "3000"),
+			Port: getEnv("SERVER_PORT", "5000"),
 		},
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),

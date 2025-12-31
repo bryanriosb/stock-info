@@ -15,8 +15,8 @@ const (
 
 type User struct {
 	ID        int64     `json:"id" gorm:"primaryKey;autoIncrement"`
-	Username  string    `json:"username" gorm:"size:50;uniqueIndex;not null"`
-	Email     string    `json:"email" gorm:"size:255;uniqueIndex;not null"`
+	Username  string    `json:"username" gorm:"size:50;uniqueIndex:idx_users_username;not null"`
+	Email     string    `json:"email" gorm:"size:255;uniqueIndex:idx_users_email;not null"`
 	Password  string    `json:"-" gorm:"size:255;not null"`
 	Role      Role      `json:"role" gorm:"size:20;not null;default:'user'"`
 	CreatedAt time.Time `json:"created_at" gorm:"type:timestamp;autoCreateTime"`

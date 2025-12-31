@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"path/filepath"
+	"runtime"
 
 	authDomain "github.com/bryanriosb/stock-info/internal/auth/domain"
 	stockDomain "github.com/bryanriosb/stock-info/internal/stock/domain"
@@ -14,12 +16,15 @@ import (
 func main() {
 	cfg := shared.LoadConfig()
 
+	log.Printf("Starting application in %s mode", cfg.Env)
+
 	if err := database.Init(cfg.Database); err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer database.Close()
 
-	if err := database.RunMigrations(database.DB(), &stockDomain.Stock{}, &userDomain.User{}, &authDomain.RefreshToken{}); err != nil {
+	// Run migrations based on environment
+	if err := runMigrations(cfg); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
@@ -35,4 +40,24 @@ func main() {
 	go startServer(app, cfg.Server.Port)
 
 	gracefulShutdown(app)
+}
+
+// runMigrations executes database migrations based on the environment
+// - Development: uses GORM AutoMigrate (automatic, flexible)
+// - Production: uses golang-migrate with versioned SQL files (controlled, safe)
+func runMigrations(cfg *shared.Config) error {
+	if cfg.IsProduction() {
+		// Production: use versioned SQL migrations
+		_, currentFile, _, _ := runtime.Caller(0)
+		migrationsPath := filepath.Join(filepath.Dir(currentFile), "..", "..", "migrations")
+		return database.RunProductionMigrations(cfg.Database, migrationsPath)
+	}
+
+	// Development: use GORM AutoMigrate
+	return database.RunAutoMigrate(
+		database.DB(),
+		&stockDomain.Stock{},
+		&userDomain.User{},
+		&authDomain.RefreshToken{},
+	)
 }

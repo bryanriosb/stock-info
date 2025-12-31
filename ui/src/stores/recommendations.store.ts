@@ -13,10 +13,13 @@ export const useRecommendationsStore = defineStore('recommendations', () => {
     error.value = null
     try {
       const res = await recommendationsApi.getAll(limit)
-      if (res.data.success) recommendations.value = res.data.data
-      else error.value = res.data.error || 'Failed'
+      if (res.data.success) {
+        recommendations.value = res.data.data ?? []
+      } else {
+        error.value = res.data.error || 'Failed'
+      }
     } catch (err: any) {
-      error.value = err.response?.data?.error || 'Error'
+      error.value = err.response?.data?.error || 'Error fetching recommendations'
     } finally {
       loading.value = false
     }

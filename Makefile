@@ -2,13 +2,24 @@
 	backend-build backend-run backend-dev backend-test backend-test-v backend-test-cover \
 	backend-test-unit backend-test-integration backend-clean backend-tidy backend-lint \
 	backend-fmt backend-fmt-check backend-deps backend-mocks \
-	backend-up backend-stop backend-down backend-logs backend-restart backend-rebuild
+	backend-up backend-stop backend-down backend-logs backend-restart backend-rebuild \
+	migrate-up migrate-down migrate-create migrate-version migrate-force
 
 # Variables
 BACKEND_DIR=./backend
 BACKEND_APP_NAME=stock-info-api
 BACKEND_BUILD_DIR=$(BACKEND_DIR)/bin
 BACKEND_MAIN_PATH=$(BACKEND_DIR)/cmd/api
+MIGRATIONS_DIR=$(BACKEND_DIR)/migrations
+
+# Database connection for migrations (loaded from .env or defaults)
+DB_HOST ?= localhost
+DB_PORT ?= 26257
+DB_USER ?= root
+DB_PASSWORD ?= root
+DB_NAME ?= stockinfo
+DB_SSLMODE ?= disable
+DB_URL=cockroachdb://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSLMODE)
 
 # Default target
 all: help
@@ -133,6 +144,37 @@ db-down:
 	@docker compose rm -sf cockroachdb
 
 # =============================================================================
+# DATABASE MIGRATIONS (golang-migrate)
+# =============================================================================
+
+## Run all pending migrations
+migrate-up:
+	@echo "Running migrations..."
+	@migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" up
+
+## Rollback the last migration
+migrate-down:
+	@echo "Rolling back last migration..."
+	@migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" down 1
+
+## Create a new migration file (usage: make migrate-create name=migration_name)
+migrate-create:
+	@if [ -z "$(name)" ]; then echo "Usage: make migrate-create name=migration_name"; exit 1; fi
+	@echo "Creating migration: $(name)..."
+	@migrate create -ext sql -dir $(MIGRATIONS_DIR) -seq $(name)
+
+## Show current migration version
+migrate-version:
+	@echo "Current migration version:"
+	@migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" version
+
+## Force set migration version (usage: make migrate-force version=1)
+migrate-force:
+	@if [ -z "$(version)" ]; then echo "Usage: make migrate-force version=1"; exit 1; fi
+	@echo "Forcing migration version to: $(version)..."
+	@migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" force $(version)
+
+# =============================================================================
 # UI COMMANDS (placeholder for future)
 # =============================================================================
 
@@ -191,8 +233,15 @@ help:
 	@echo "  make backend-logs           - View backend container logs"
 	@echo "  make backend-restart        - Restart backend container"
 	@echo "  make backend-rebuild        - Rebuild and restart backend container"
-	@echo "	 make db-up                  - Start database container"
+	@echo "  make db-up                  - Start database container"
 	@echo "  make db-down                - Stop and remove database container"
+	@echo ""
+	@echo "Migration Commands:"
+	@echo "  make migrate-up             - Run all pending migrations"
+	@echo "  make migrate-down           - Rollback the last migration"
+	@echo "  make migrate-create name=x  - Create a new migration file"
+	@echo "  make migrate-version        - Show current migration version"
+	@echo "  make migrate-force version=x - Force set migration version"
 	@echo ""
 	@echo "Frontend Commands:"
 	@echo "  make frontend-restart         - Restart frontend container"
