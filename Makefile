@@ -30,7 +30,7 @@ backend-run: backend-build
 ## Run backend with hot reload (requires air)
 backend-dev:
 	@echo "Starting backend development server with hot reload..."
-	@cd $(BACKEND_DIR) && air
+	@docker compose up backend -d
 
 ## Run all backend tests
 backend-test:
@@ -124,14 +124,21 @@ backend-rebuild:
 	@echo "Rebuilding backend container..."
 	@docker compose up -d --build backend
 
+db-up:
+	@echo "Starting database container..."
+	@docker compose up -d cockroachdb
 
-frontend-restart:
-	@echo "Restarting frontend container..."
-	@docker compose restart frontend
+db-down:
+	@echo "Stopping and removing database container..."
+	@docker compose rm -sf cockroachdb
 
 # =============================================================================
 # UI COMMANDS (placeholder for future)
 # =============================================================================
+
+frontend-restart:
+	@echo "Restarting frontend container..."
+	@docker compose restart frontend
 
 # UI commands will be added here
 
@@ -184,6 +191,8 @@ help:
 	@echo "  make backend-logs           - View backend container logs"
 	@echo "  make backend-restart        - Restart backend container"
 	@echo "  make backend-rebuild        - Rebuild and restart backend container"
+	@echo "	 make db-up                  - Start database container"
+	@echo "  make db-down                - Stop and remove database container"
 	@echo ""
 	@echo "Frontend Commands:"
 	@echo "  make frontend-restart         - Restart frontend container"

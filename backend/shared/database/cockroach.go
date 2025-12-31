@@ -70,15 +70,10 @@ func newConnection(cfg shared.DatabaseConfig) (*gorm.DB, error) {
 func RunMigrations(db *gorm.DB, models ...interface{}) error {
 	log.Println("Running database migrations...")
 
-	// Disable foreign key constraints during migration for CockroachDB compatibility
-	migrator := db.Migrator()
-
-	for _, model := range models {
-		if !migrator.HasTable(model) {
-			if err := migrator.CreateTable(model); err != nil {
-				return fmt.Errorf("failed to create table: %w", err)
-			}
-		}
+	// AutoMigrate creates tables, adds missing columns, and creates indexes
+	// It does NOT delete unused columns or change existing column types
+	if err := db.AutoMigrate(models...); err != nil {
+		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
 	log.Println("Migrations completed successfully")

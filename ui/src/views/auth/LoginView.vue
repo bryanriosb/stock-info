@@ -10,7 +10,8 @@ import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { TrendingUp, Loader2 } from 'lucide-vue-next'
+import { getErrors, isInvalid } from '@/lib/form'
+import Logo from '@/components/Logo.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -32,26 +33,13 @@ const form = useForm({
     }
   },
 })
-
-function isInvalid(field: any) {
-  return field.state.meta.isTouched && !field.state.meta.isValid
-}
-
-function getErrors(field: any): string[] {
-  if (!field.state.meta.errors) return []
-  return field.state.meta.errors.map((e: any) =>
-    typeof e === 'string' ? e : e?.message || ''
-  ).filter(Boolean)
-}
 </script>
 
 <template>
   <div class="min-h-screen flex items-center justify-center bg-background p-4">
     <Card class="w-full max-w-md">
       <CardHeader class="text-center">
-        <div class="mx-auto mb-4 h-12 w-12 rounded-xl gradient-coral flex items-center justify-center">
-          <TrendingUp class="h-6 w-6 text-white" />
-        </div>
+        <Logo />
         <CardTitle class="text-2xl">Welcome back</CardTitle>
         <CardDescription>Sign in to your Stock Info account</CardDescription>
       </CardHeader>

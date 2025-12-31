@@ -70,8 +70,8 @@ function formatDate(d: string) {
             <div class="grid grid-cols-2 gap-6">
               <div><p class="text-sm text-muted-foreground">Brokerage</p><p class="font-medium">{{ store.currentStock.brokerage }}</p></div>
               <div><p class="text-sm text-muted-foreground">Action</p><p class="font-medium">{{ store.currentStock.action }}</p></div>
-              <div><p class="text-sm text-muted-foreground flex items-center gap-1"><DollarSign class="h-4 w-4" />Previous</p><p class="font-mono">{{ formatCurrency(store.currentStock.target_from) }}</p></div>
-              <div><p class="text-sm text-muted-foreground flex items-center gap-1"><DollarSign class="h-4 w-4" />New</p><p class="font-mono">{{ formatCurrency(store.currentStock.target_to) }}</p></div>
+              <div><p class="text-sm text-muted-foreground flex items-center gap-1"><DollarSign :size="Number(4)" />Previous</p><p class="font-mono">{{ formatCurrency(store.currentStock.target_from) }}</p></div>
+              <div><p class="text-sm text-muted-foreground flex items-center gap-1"><DollarSign :size="Number(4)" />New</p><p class="font-mono">{{ formatCurrency(store.currentStock.target_to) }}</p></div>
             </div>
           </CardContent>
         </Card>

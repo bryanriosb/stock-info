@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Button } from '@/components/ui/button'
-import { TrendingUp, Menu, X } from 'lucide-vue-next'
 import NavLinks from './NavLinks.vue'
 import UserMenu from './UserMenu.vue'
 import UserProfileDialog from './UserProfileDialog.vue'
@@ -15,9 +14,7 @@ const profileDialogOpen = ref(false)
     <nav class="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur">
       <div class="container flex h-16 items-center">
         <div class="mr-8 flex items-center space-x-2">
-          <div class="h-8 w-8 rounded-lg gradient-coral flex items-center justify-center">
-            <TrendingUp class="h-5 w-5 text-white" />
-          </div>
+         <Logo />
           <span class="text-xl font-bold">StockInfo</span>
         </div>
 
