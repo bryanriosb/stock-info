@@ -13,7 +13,6 @@ type StockUseCase interface {
 	SyncStocks(ctx context.Context) (int, error)
 	SyncStocksWithProgress(ctx context.Context, onProgress infrastructure.ProgressCallback) (int, error)
 	GetStocks(ctx context.Context, params domain.QueryParams) ([]*domain.Stock, int64, error)
-	GetStockByTicker(ctx context.Context, ticker string) ([]*domain.Stock, error)
 	GetStockByID(ctx context.Context, id int64) (*domain.Stock, error)
 }
 
@@ -81,10 +80,6 @@ func (uc *stockUseCase) SyncStocksWithProgress(ctx context.Context, onProgress i
 
 func (uc *stockUseCase) GetStocks(ctx context.Context, params domain.QueryParams) ([]*domain.Stock, int64, error) {
 	return uc.repo.FindAll(ctx, params)
-}
-
-func (uc *stockUseCase) GetStockByTicker(ctx context.Context, ticker string) ([]*domain.Stock, error) {
-	return uc.repo.FindByTicker(ctx, ticker)
 }
 
 func (uc *stockUseCase) GetStockByID(ctx context.Context, id int64) (*domain.Stock, error) {

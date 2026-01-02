@@ -30,8 +30,17 @@ func (h *Handler) GetStocks(c *fiber.Ctx) error {
 		Limit:   c.QueryInt("limit", 20),
 		SortBy:  c.Query("sort_by", "id"),
 		SortDir: c.Query("sort_dir", "asc"),
-		Ticker:  c.Query("ticker"),
-		Company: c.Query("company"),
+	}
+
+	// Only set filters if they have values
+	if search := c.Query("search"); search != "" {
+		params.Search = search
+	}
+	if ratingFrom := c.Query("rating_from"); ratingFrom != "" {
+		params.RatingFrom = ratingFrom
+	}
+	if ratingTo := c.Query("rating_to"); ratingTo != "" {
+		params.RatingTo = ratingTo
 	}
 
 	stocks, total, err := h.useCase.GetStocks(c.Context(), params)
@@ -68,20 +77,6 @@ func (h *Handler) GetStockByID(c *fiber.Ctx) error {
 	}
 
 	return response.Success(c, stock)
-}
-
-func (h *Handler) GetStockByTicker(c *fiber.Ctx) error {
-	ticker := c.Params("ticker")
-	if ticker == "" {
-		return response.BadRequest(c, "Ticker is required")
-	}
-
-	stocks, err := h.useCase.GetStockByTicker(c.Context(), ticker)
-	if err != nil {
-		return response.InternalError(c, "Failed to fetch stocks")
-	}
-
-	return response.Success(c, stocks)
 }
 
 // SyncStocksStream handles SSE streaming for stock sync with progress

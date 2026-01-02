@@ -1,24 +1,22 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStocksStore } from '@/stores/stocks.store'
 import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
 import Pagination from '@/components/Pagination.vue'
 import RatingBadge from '@/components/RatingBadge.vue'
-import { RefreshCw, Search, X, ArrowUpDown, ArrowUp, ArrowDown, StopCircle, Square } from 'lucide-vue-next'
+import StockFilter from '@/components/StockFilter.vue'
+import { RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Square } from 'lucide-vue-next'
 import type { Stock } from '@/types/stock.types'
 
 const router = useRouter()
 const store = useStocksStore()
 const { toast } = useToast()
-
-const filters = ref({ ticker: '', company: '' })
 
 onMounted(() => store.fetchStocks())
 
@@ -38,8 +36,10 @@ watch(() => store.error, (error) => {
 
 function handleSort(field: string) { store.setSort(field) }
 function handlePageChange(page: number) { store.setPage(page) }
-function handleSearch() { store.setFilters(filters.value) }
-function handleClear() { filters.value = { ticker: '', company: '' }; store.clearFilters() }
+function handleFilter(filters: { search?: string; rating_from?: string; rating_to?: string; ticker?: string; company?: string }) {
+  store.setFilters(filters)
+}
+function handleClearFilters() { store.clearFilters() }
 function handleRowClick(stock: Stock) { router.push(`/stocks/${stock.id}`) }
 
 function handleSync() {
@@ -85,7 +85,7 @@ function getSortIcon(field: string) {
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
         <h1 class="text-3xl font-bold tracking-tight">Stocks</h1>
-        <p class="text-muted-foreground">Manage and analyze stock recommendations</p>
+        <p class="text-muted-foreground">Analyze stock performance</p>
       </div>
       <div class="flex flex-col items-end gap-2">
         <div class="flex gap-2">
@@ -109,23 +109,14 @@ function getSortIcon(field: string) {
       </div>
     </div>
 
+    <!-- New StockFilter component replacing old filters -->
     <Card>
-      <CardHeader><CardTitle class="text-lg">Filters</CardTitle></CardHeader>
-      <CardContent>
-        <form @submit.prevent="handleSearch" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div class="space-y-2">
-            <label class="text-sm font-medium">Ticker</label>
-            <Input v-model="filters.ticker" placeholder="e.g., AAPL" />
-          </div>
-          <div class="space-y-2">
-            <label class="text-sm font-medium">Company</label>
-            <Input v-model="filters.company" placeholder="e.g., Apple" />
-          </div>
-          <div class="flex items-end gap-2 md:col-span-2">
-            <Button type="submit"><Search class="mr-2 h-4 w-4" />Search</Button>
-            <Button type="button" variant="outline" @click="handleClear"><X class="mr-2 h-4 w-4" />Clear</Button>
-          </div>
-        </form>
+      <CardContent class="pt-6">
+        <StockFilter 
+          :loading="store.loading"
+          @filter="handleFilter"
+          @clear="handleClearFilters"
+        />
       </CardContent>
     </Card>
 

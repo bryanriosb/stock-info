@@ -38,14 +38,6 @@ func (m *MockStockUseCase) GetStocks(ctx context.Context, params domain.QueryPar
 	return args.Get(0).([]*domain.Stock), args.Get(1).(int64), args.Error(2)
 }
 
-func (m *MockStockUseCase) GetStockByTicker(ctx context.Context, ticker string) ([]*domain.Stock, error) {
-	args := m.Called(ctx, ticker)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*domain.Stock), args.Error(1)
-}
-
 func (m *MockStockUseCase) GetStockByID(ctx context.Context, id int64) (*domain.Stock, error) {
 	args := m.Called(ctx, id)
 	if args.Get(0) == nil {
@@ -58,7 +50,6 @@ func setupTestApp(handler *Handler) *fiber.App {
 	app := fiber.New()
 	app.Get("/stocks", handler.GetStocks)
 	app.Get("/stocks/:id", handler.GetStockByID)
-	app.Get("/stocks/ticker/:ticker", handler.GetStockByTicker)
 	// Note: SyncStocksStream is SSE and tested separately
 	return app
 }
@@ -88,6 +79,128 @@ func TestGetStocks_Success(t *testing.T) {
 	assert.True(t, result.Success)
 	assert.NotNil(t, result.Data)
 	assert.NotNil(t, result.Meta)
+	mockUC.AssertExpectations(t)
+}
+
+func TestGetStocks_WithSearch(t *testing.T) {
+	mockUC := new(MockStockUseCase)
+	handler := NewHandler(mockUC)
+	app := setupTestApp(handler)
+
+	stocks := []*domain.Stock{
+		{ID: 1, Ticker: "AAPL", Company: "Apple Inc."},
+	}
+
+	mockUC.On("GetStocks", mock.Anything, mock.AnythingOfType("domain.QueryParams")).
+		Return(stocks, int64(1), nil)
+
+	req := httptest.NewRequest("GET", "/stocks?search=AAPL&page=1", nil)
+	resp, err := app.Test(req)
+
+	assert.NoError(t, err)
+	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
+
+	var result response.Response
+	json.NewDecoder(resp.Body).Decode(&result)
+
+	assert.True(t, result.Success)
+	assert.NotNil(t, result.Data)
+	mockUC.AssertExpectations(t)
+}
+
+func TestGetStocks_WithRatingFilters(t *testing.T) {
+	mockUC := new(MockStockUseCase)
+	handler := NewHandler(mockUC)
+	app := setupTestApp(handler)
+
+	stocks := []*domain.Stock{
+		{ID: 1, Ticker: "AAPL", Company: "Apple Inc.", RatingFrom: "Buy", RatingTo: "Hold"},
+	}
+
+	mockUC.On("GetStocks", mock.Anything, mock.AnythingOfType("domain.QueryParams")).
+		Return(stocks, int64(1), nil)
+
+	req := httptest.NewRequest("GET", "/stocks?rating_from=Buy&rating_to=Hold", nil)
+	resp, err := app.Test(req)
+
+	assert.NoError(t, err)
+	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
+
+	var result response.Response
+	json.NewDecoder(resp.Body).Decode(&result)
+
+	assert.True(t, result.Success)
+	assert.NotNil(t, result.Data)
+	mockUC.AssertExpectations(t)
+}
+
+func TestGetStocks_WithAllFilters(t *testing.T) {
+	mockUC := new(MockStockUseCase)
+	handler := NewHandler(mockUC)
+	app := setupTestApp(handler)
+
+	stocks := []*domain.Stock{
+		{ID: 1, Ticker: "AAPL", Company: "Apple Inc.", RatingFrom: "Buy", RatingTo: "Strong Buy"},
+	}
+
+	mockUC.On("GetStocks", mock.Anything, mock.AnythingOfType("domain.QueryParams")).
+		Return(stocks, int64(1), nil)
+
+	req := httptest.NewRequest("GET", "/stocks?search=Apple&rating_from=Buy&rating_to=Strong+Buy&page=1&limit=20", nil)
+	resp, err := app.Test(req)
+
+	assert.NoError(t, err)
+	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
+
+	var result response.Response
+	json.NewDecoder(resp.Body).Decode(&result)
+
+	assert.True(t, result.Success)
+	assert.NotNil(t, result.Data)
+	mockUC.AssertExpectations(t)
+}
+
+func TestGetStocks_WithDefaults(t *testing.T) {
+	mockUC := new(MockStockUseCase)
+	handler := NewHandler(mockUC)
+	app := setupTestApp(handler)
+
+	stocks := []*domain.Stock{}
+
+	mockUC.On("GetStocks", mock.Anything, mock.AnythingOfType("domain.QueryParams")).
+		Return(stocks, int64(0), nil)
+
+	req := httptest.NewRequest("GET", "/stocks", nil)
+	resp, err := app.Test(req)
+
+	assert.NoError(t, err)
+	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
+
+	var result response.Response
+	json.NewDecoder(resp.Body).Decode(&result)
+
+	assert.True(t, result.Success)
+	assert.NotNil(t, result.Data)
+	mockUC.AssertExpectations(t)
+}
+
+func TestGetStocks_InvalidQueryParams(t *testing.T) {
+	mockUC := new(MockStockUseCase)
+	handler := NewHandler(mockUC)
+	app := setupTestApp(handler)
+
+	stocks := []*domain.Stock{}
+	mockUC.On("GetStocks", mock.Anything, mock.AnythingOfType("domain.QueryParams")).
+		Return(stocks, int64(0), nil)
+
+	req := httptest.NewRequest("GET", "/stocks?page=0&limit=101", nil)
+	resp, err := app.Test(req)
+
+	assert.NoError(t, err)
+	// With validation in handler, invalid params are corrected to defaults
+	// So we expect the request to be processed successfully
+	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
+
 	mockUC.AssertExpectations(t)
 }
 
@@ -171,49 +284,6 @@ func TestGetStockByID_NotFound(t *testing.T) {
 
 	assert.False(t, result.Success)
 	assert.Contains(t, result.Error, "Stock not found")
-	mockUC.AssertExpectations(t)
-}
-
-func TestGetStockByTicker_Success(t *testing.T) {
-	mockUC := new(MockStockUseCase)
-	handler := NewHandler(mockUC)
-	app := setupTestApp(handler)
-
-	stocks := []*domain.Stock{
-		{ID: 1, Ticker: "AAPL", Company: "Apple Inc."},
-	}
-	mockUC.On("GetStockByTicker", mock.Anything, "AAPL").Return(stocks, nil)
-
-	req := httptest.NewRequest("GET", "/stocks/ticker/AAPL", nil)
-	resp, err := app.Test(req)
-
-	assert.NoError(t, err)
-	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
-
-	var result response.Response
-	json.NewDecoder(resp.Body).Decode(&result)
-
-	assert.True(t, result.Success)
-	mockUC.AssertExpectations(t)
-}
-
-func TestGetStockByTicker_Error(t *testing.T) {
-	mockUC := new(MockStockUseCase)
-	handler := NewHandler(mockUC)
-	app := setupTestApp(handler)
-
-	mockUC.On("GetStockByTicker", mock.Anything, "AAPL").Return(nil, errors.New("database error"))
-
-	req := httptest.NewRequest("GET", "/stocks/ticker/AAPL", nil)
-	resp, err := app.Test(req)
-
-	assert.NoError(t, err)
-	assert.Equal(t, fiber.StatusInternalServerError, resp.StatusCode)
-
-	var result response.Response
-	json.NewDecoder(resp.Body).Decode(&result)
-
-	assert.False(t, result.Success)
 	mockUC.AssertExpectations(t)
 }
 

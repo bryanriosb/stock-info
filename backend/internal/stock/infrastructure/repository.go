@@ -53,12 +53,19 @@ func (r *stockRepository) FindAll(ctx context.Context, params domain.QueryParams
 
 	query := r.db.WithContext(ctx).Model(&domain.Stock{})
 
-	if params.Ticker != "" {
-		query = query.Where("ticker = ?", params.Ticker)
+	// Combined search: ticker OR company
+	if params.Search != "" {
+		searchTerm := "%" + params.Search + "%"
+		query = query.Where("ticker ILIKE ? OR company ILIKE ?", searchTerm, searchTerm)
 	}
 
-	if params.Company != "" {
-		query = query.Where("company ILIKE ?", "%"+params.Company+"%")
+	// Rating filters
+	if params.RatingFrom != "" {
+		query = query.Where("rating_from = ?", params.RatingFrom)
+	}
+
+	if params.RatingTo != "" {
+		query = query.Where("rating_to = ?", params.RatingTo)
 	}
 
 	if err := query.Count(&total).Error; err != nil {
@@ -84,15 +91,6 @@ func (r *stockRepository) FindAll(ctx context.Context, params domain.QueryParams
 		Find(&stocks).Error
 
 	return stocks, total, err
-}
-
-func (r *stockRepository) FindByTicker(ctx context.Context, ticker string) ([]*domain.Stock, error) {
-	var stocks []*domain.Stock
-	err := r.db.WithContext(ctx).
-		Where("ticker = ?", ticker).
-		Order("created_at DESC").
-		Find(&stocks).Error
-	return stocks, err
 }
 
 func (r *stockRepository) FindByID(ctx context.Context, id int64) (*domain.Stock, error) {

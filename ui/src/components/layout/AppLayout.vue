@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import NavLinks from './NavLinks.vue'
 import UserMenu from './UserMenu.vue'
 import UserProfileDialog from './UserProfileDialog.vue'
+import Logo from '../Logo.vue'
 
 const mobileMenuOpen = ref(false)
 const profileDialogOpen = ref(false)

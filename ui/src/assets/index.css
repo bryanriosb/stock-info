@@ -47,4 +47,25 @@
   .gradient-coral {
     @apply bg-gradient-to-r from-coral-500 to-amber-400;
   }
+
+  /* DataTable Filter Styles - from React project */
+  .btn-trigger-popover {
+    @apply h-8 border-dashed hover:bg-primary/10 hover:border-primary/30 transition-colors;
+  }
+
+  .checkbox-selected {
+    @apply border border-gray-600;
+  }
+
+  .checkbox-unselected {
+    @apply opacity-20 border border-foreground;
+  }
+
+  .command-item-hover {
+    @apply hover:bg-accent/30 hover:text-accent-foreground transition-colors duration-200;
+  }
+
+  .command-item-selected {
+    @apply bg-accent/20 text-accent-foreground;
+  }
 }

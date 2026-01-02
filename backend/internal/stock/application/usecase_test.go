@@ -34,14 +34,6 @@ func (m *MockStockRepository) FindAll(ctx context.Context, params domain.QueryPa
 	return args.Get(0).([]*domain.Stock), args.Get(1).(int64), args.Error(2)
 }
 
-func (m *MockStockRepository) FindByTicker(ctx context.Context, ticker string) ([]*domain.Stock, error) {
-	args := m.Called(ctx, ticker)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*domain.Stock), args.Error(1)
-}
-
 func (m *MockStockRepository) FindByID(ctx context.Context, id int64) (*domain.Stock, error) {
 	args := m.Called(ctx, id)
 	if args.Get(0) == nil {
@@ -167,39 +159,6 @@ func TestGetStocks_Empty(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), total)
-	assert.Empty(t, result)
-	mockRepo.AssertExpectations(t)
-}
-
-func TestGetStockByTicker_Success(t *testing.T) {
-	mockRepo := new(MockStockRepository)
-	mockAPI := new(MockStockAPIClient)
-
-	stocks := []*domain.Stock{
-		{ID: 1, Ticker: "AAPL", Company: "Apple Inc."},
-	}
-
-	mockRepo.On("FindByTicker", mock.Anything, "AAPL").Return(stocks, nil)
-
-	uc := NewStockUseCase(mockRepo, mockAPI)
-	result, err := uc.GetStockByTicker(context.Background(), "AAPL")
-
-	assert.NoError(t, err)
-	assert.Len(t, result, 1)
-	assert.Equal(t, "AAPL", result[0].Ticker)
-	mockRepo.AssertExpectations(t)
-}
-
-func TestGetStockByTicker_NotFound(t *testing.T) {
-	mockRepo := new(MockStockRepository)
-	mockAPI := new(MockStockAPIClient)
-
-	mockRepo.On("FindByTicker", mock.Anything, "INVALID").Return([]*domain.Stock{}, nil)
-
-	uc := NewStockUseCase(mockRepo, mockAPI)
-	result, err := uc.GetStockByTicker(context.Background(), "INVALID")
-
-	assert.NoError(t, err)
 	assert.Empty(t, result)
 	mockRepo.AssertExpectations(t)
 }

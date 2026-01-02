@@ -18,8 +18,9 @@ export interface StockQueryParams {
   limit?: number
   sort_by?: 'id' | 'ticker' | 'company' | 'target_to' | 'time' | 'created_at'
   sort_dir?: 'asc' | 'desc'
-  ticker?: string
-  company?: string
+  search?: string
+  rating_from?: string
+  rating_to?: string
 }
 
 export interface StockRecommendation {

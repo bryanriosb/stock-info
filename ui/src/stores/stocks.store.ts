@@ -104,7 +104,7 @@ export const useStocksStore = defineStore('stocks', () => {
     fetchStocks()
   }
 
-  function setFilters(filters: { ticker?: string; company?: string }) {
+  function setFilters(filters: { search?: string; rating_from?: string; rating_to?: string }) {
     queryParams.value = { ...queryParams.value, ...filters, page: 1 }
     fetchStocks()
   }
