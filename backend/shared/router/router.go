@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/bryanriosb/stock-info/internal/auth"
+	"github.com/bryanriosb/stock-info/internal/rating"
 	"github.com/bryanriosb/stock-info/internal/recommendation"
 	"github.com/bryanriosb/stock-info/internal/stock"
 	"github.com/bryanriosb/stock-info/internal/user"
@@ -24,6 +25,9 @@ func Setup(app *fiber.App, db *gorm.DB, cfg *shared.Config) {
 
 	// Register public auth routes
 	auth.Register(api, db, cfg, userUseCase)
+
+	// Register rating options as public endpoint (needed for filters)
+	rating.Register(api, db)
 
 	// Create protected group with JWT middleware
 	protected := api.Group("", middleware.JWTProtected(cfg.JWT.Secret))

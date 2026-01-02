@@ -1,8 +1,10 @@
 package stock
 
 import (
-	"github.com/bryanriosb/stock-info/internal/stock/application"
-	"github.com/bryanriosb/stock-info/internal/stock/infrastructure"
+	"github.com/bryanriosb/stock-info/internal/rating/application"
+	"github.com/bryanriosb/stock-info/internal/rating/infrastructure"
+	stockApp "github.com/bryanriosb/stock-info/internal/stock/application"
+	stockInfra "github.com/bryanriosb/stock-info/internal/stock/infrastructure"
 	"github.com/bryanriosb/stock-info/internal/stock/interfaces"
 	"github.com/bryanriosb/stock-info/shared"
 	"github.com/gofiber/fiber/v2"
@@ -10,9 +12,13 @@ import (
 )
 
 func Register(app fiber.Router, db *gorm.DB, cfg *shared.Config) {
-	repo := infrastructure.NewStockRepository(db)
-	apiClient := infrastructure.NewStockAPIClient(cfg.StockAPI)
-	useCase := application.NewStockUseCase(repo, apiClient)
+	// Initialize rating service
+	ratingRepo := infrastructure.NewRatingOptionRepository(db)
+	ratingService := application.NewRatingService(ratingRepo)
+
+	repo := stockInfra.NewStockRepository(db)
+	apiClient := stockInfra.NewStockAPIClient(cfg.StockAPI)
+	useCase := stockApp.NewStockUseCase(repo, apiClient, ratingService)
 	handler := interfaces.NewHandler(useCase)
 
 	group := app.Group("/stocks")

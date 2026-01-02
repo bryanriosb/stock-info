@@ -83,7 +83,7 @@ func TestSyncStocks_Success(t *testing.T) {
 	mockAPI.On("FetchAllStocksWithProgress", mock.Anything, mock.Anything).Return(stocks, nil)
 	mockRepo.On("CreateBatch", mock.Anything, stocks).Return(nil)
 
-	uc := NewStockUseCase(mockRepo, mockAPI)
+	uc := NewStockUseCase(mockRepo, mockAPI, nil)
 	count, err := uc.SyncStocks(context.Background())
 
 	assert.NoError(t, err)
@@ -98,7 +98,7 @@ func TestSyncStocks_APIError(t *testing.T) {
 
 	mockAPI.On("FetchAllStocksWithProgress", mock.Anything, mock.Anything).Return(nil, errors.New("API error"))
 
-	uc := NewStockUseCase(mockRepo, mockAPI)
+	uc := NewStockUseCase(mockRepo, mockAPI, nil)
 	count, err := uc.SyncStocks(context.Background())
 
 	assert.Error(t, err)
@@ -117,7 +117,7 @@ func TestSyncStocks_RepoError(t *testing.T) {
 	mockAPI.On("FetchAllStocksWithProgress", mock.Anything, mock.Anything).Return(stocks, nil)
 	mockRepo.On("CreateBatch", mock.Anything, stocks).Return(errors.New("DB error"))
 
-	uc := NewStockUseCase(mockRepo, mockAPI)
+	uc := NewStockUseCase(mockRepo, mockAPI, nil)
 	count, err := uc.SyncStocks(context.Background())
 
 	assert.Error(t, err)
@@ -138,7 +138,7 @@ func TestGetStocks_Success(t *testing.T) {
 
 	mockRepo.On("FindAll", mock.Anything, params).Return(stocks, int64(2), nil)
 
-	uc := NewStockUseCase(mockRepo, mockAPI)
+	uc := NewStockUseCase(mockRepo, mockAPI, nil)
 	result, total, err := uc.GetStocks(context.Background(), params)
 
 	assert.NoError(t, err)
@@ -154,7 +154,7 @@ func TestGetStocks_Empty(t *testing.T) {
 	params := domain.QueryParams{Page: 1, Limit: 10}
 	mockRepo.On("FindAll", mock.Anything, params).Return([]*domain.Stock{}, int64(0), nil)
 
-	uc := NewStockUseCase(mockRepo, mockAPI)
+	uc := NewStockUseCase(mockRepo, mockAPI, nil)
 	result, total, err := uc.GetStocks(context.Background(), params)
 
 	assert.NoError(t, err)
@@ -171,7 +171,7 @@ func TestGetStockByID_Success(t *testing.T) {
 
 	mockRepo.On("FindByID", mock.Anything, int64(1)).Return(stock, nil)
 
-	uc := NewStockUseCase(mockRepo, mockAPI)
+	uc := NewStockUseCase(mockRepo, mockAPI, nil)
 	result, err := uc.GetStockByID(context.Background(), 1)
 
 	assert.NoError(t, err)
@@ -186,7 +186,7 @@ func TestGetStockByID_NotFound(t *testing.T) {
 
 	mockRepo.On("FindByID", mock.Anything, int64(999)).Return(nil, errors.New("not found"))
 
-	uc := NewStockUseCase(mockRepo, mockAPI)
+	uc := NewStockUseCase(mockRepo, mockAPI, nil)
 	result, err := uc.GetStockByID(context.Background(), 999)
 
 	assert.Error(t, err)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/bryanriosb/stock-info/internal/rating/application"
 	"github.com/bryanriosb/stock-info/internal/stock/domain"
 	"github.com/bryanriosb/stock-info/internal/stock/infrastructure"
 )
@@ -17,14 +18,16 @@ type StockUseCase interface {
 }
 
 type stockUseCase struct {
-	repo      domain.StockRepository
-	apiClient infrastructure.StockAPIClient
+	repo          domain.StockRepository
+	apiClient     infrastructure.StockAPIClient
+	ratingService *application.RatingService
 }
 
-func NewStockUseCase(repo domain.StockRepository, apiClient infrastructure.StockAPIClient) StockUseCase {
+func NewStockUseCase(repo domain.StockRepository, apiClient infrastructure.StockAPIClient, ratingService *application.RatingService) StockUseCase {
 	return &stockUseCase{
-		repo:      repo,
-		apiClient: apiClient,
+		repo:          repo,
+		apiClient:     apiClient,
+		ratingService: ratingService,
 	}
 }
 
@@ -51,6 +54,13 @@ func (uc *stockUseCase) SyncStocksWithProgress(ctx context.Context, onProgress i
 			Status:  "saving",
 			Message: "Saving stocks to database...",
 		})
+	}
+
+	// Extract and save rating options before saving stocks
+	if uc.ratingService != nil {
+		if err := uc.ratingService.ExtractAndSaveRatingOptions(ctx, stocks); err != nil {
+			log.Printf("Warning: Failed to extract rating options: %v", err)
+		}
 	}
 
 	if err := uc.repo.CreateBatch(ctx, stocks); err != nil {

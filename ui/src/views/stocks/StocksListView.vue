@@ -109,10 +109,10 @@ function getSortIcon(field: string) {
       </div>
     </div>
 
-    <!-- New StockFilter component replacing old filters -->
-    <Card>
+    <!-- StockFilter component - show when loaded or has active filters -->
+    <Card v-if="store.hasLoadedOnce || store.hasActiveFilters">
       <CardContent class="pt-6">
-        <StockFilter 
+        <StockFilter
           :loading="store.loading"
           @filter="handleFilter"
           @clear="handleClearFilters"

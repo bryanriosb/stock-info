@@ -6,6 +6,7 @@ import (
 	"runtime"
 
 	authDomain "github.com/bryanriosb/stock-info/internal/auth/domain"
+	ratingDomain "github.com/bryanriosb/stock-info/internal/rating/domain"
 	stockDomain "github.com/bryanriosb/stock-info/internal/stock/domain"
 	userDomain "github.com/bryanriosb/stock-info/internal/user/domain"
 	"github.com/bryanriosb/stock-info/shared"
@@ -59,5 +60,6 @@ func runMigrations(cfg *shared.Config) error {
 		&stockDomain.Stock{},
 		&userDomain.User{},
 		&authDomain.RefreshToken{},
+		&ratingDomain.RatingOption{},
 	)
 }

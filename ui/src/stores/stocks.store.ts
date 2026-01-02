@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { stocksApi, type SyncProgress } from '@/api/stocks.api'
 import type { Stock, StockQueryParams } from '@/types/stock.types'
 import type { PaginationMeta } from '@/types/api.types'
@@ -13,6 +13,11 @@ export const useStocksStore = defineStore('stocks', () => {
   const error = ref<string | null>(null)
   const meta = ref<PaginationMeta | null>(null)
   const queryParams = ref<StockQueryParams>({ page: 1, limit: 20, sort_by: 'id', sort_dir: 'asc' })
+  const hasLoadedOnce = ref(false)
+
+  const hasActiveFilters = computed(() => {
+    return !!(queryParams.value.search || queryParams.value.rating_from || queryParams.value.rating_to)
+  })
 
   let abortSync: (() => void) | null = null
 
@@ -26,6 +31,7 @@ export const useStocksStore = defineStore('stocks', () => {
       if (res.data.success) {
         stocks.value = res.data.data
         meta.value = res.data.meta || null
+        hasLoadedOnce.value = true
       } else {
         error.value = res.data.error || 'Failed to fetch'
       }
@@ -114,5 +120,5 @@ export const useStocksStore = defineStore('stocks', () => {
     fetchStocks()
   }
 
-  return { stocks, currentStock, loading, syncing, syncProgress, error, meta, queryParams, fetchStocks, fetchStockById, syncStocks, cancelSync, setSort, setPage, setFilters, clearFilters }
+  return { stocks, currentStock, loading, syncing, syncProgress, error, meta, queryParams, hasLoadedOnce, hasActiveFilters, fetchStocks, fetchStockById, syncStocks, cancelSync, setSort, setPage, setFilters, clearFilters }
 })

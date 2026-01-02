@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/command'
 import { Search, FunnelX, PlusCircle } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
+import { ratingApi, type RatingOption } from '@/api/rating.api'
 
 interface StockFilters {
   search: string
@@ -49,14 +50,27 @@ const filters = ref<StockFilters>({
   rating_to: ''
 })
 
-// Rating options for faceted filters (similar to React project)
-const ratingOptions = [
-  { label: 'Strong Buy', value: 'Strong Buy' },
-  { label: 'Buy', value: 'Buy' },
-  { label: 'Hold', value: 'Hold' },
-  { label: 'Sell', value: 'Sell' },
-  { label: 'Strong Sell', value: 'Strong Sell' }
-]
+// Dynamic rating options from API
+const ratingOptions = ref<RatingOption[]>([])
+const loadingRatingOptions = ref(false)
+
+// Load rating options from API
+const loadRatingOptions = async () => {
+  loadingRatingOptions.value = true
+  try {
+    ratingOptions.value = await ratingApi.getRatingOptions()
+  } catch (error) {
+    console.error('Failed to load rating options:', error)
+    ratingOptions.value = []
+  } finally {
+    loadingRatingOptions.value = false
+  }
+}
+
+// Load rating options on component mount
+onMounted(() => {
+  loadRatingOptions()
+})
 
 // Debounced search function (300ms like React project)
 const debouncedSearch = useDebounceFn(() => {
@@ -94,7 +108,7 @@ function handleClear() {
 
 // Helper function to get rating display name
 function getRatingDisplay(value: string) {
-  const option = ratingOptions.find(opt => opt.value === value)
+  const option = ratingOptions.value.find(opt => opt.value === value)
   return option ? option.label : value
 }
 </script>
@@ -116,7 +130,12 @@ function getRatingDisplay(value: string) {
       <!-- Rating From Faceted Filter -->
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" class="btn-trigger-popover">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            class="btn-trigger-popover"
+            :disabled="loadingRatingOptions || ratingOptions.length === 0"
+          >
             <PlusCircle class="mr-2 h-4 w-4" />
             Rating From
             <Separator v-if="selectedRatingFrom" orientation="vertical" class="mx-2 h-4" />
@@ -141,11 +160,13 @@ function getRatingDisplay(value: string) {
           <Command>
             <CommandInput placeholder="Rating From" />
             <CommandList>
-              <CommandEmpty>No results found.</CommandEmpty>
+              <CommandEmpty v-if="!loadingRatingOptions">No rating options available.</CommandEmpty>
+              <CommandEmpty v-if="loadingRatingOptions">Loading rating options...</CommandEmpty>
               <CommandGroup>
                 <CommandItem
                   v-for="option in ratingOptions"
                   :key="option.value"
+                  :value="option.value"
                   :class="cn(
                     'command-item-hover',
                     selectedRatingFrom === option.value && 'command-item-selected'
@@ -184,7 +205,12 @@ function getRatingDisplay(value: string) {
       <!-- Rating To Faceted Filter -->
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" class="btn-trigger-popover">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            class="btn-trigger-popover"
+            :disabled="loadingRatingOptions || ratingOptions.length === 0"
+          >
             <PlusCircle class="mr-2 h-4 w-4" />
             Rating To
             <Separator v-if="selectedRatingTo" orientation="vertical" class="mx-2 h-4" />
@@ -209,11 +235,13 @@ function getRatingDisplay(value: string) {
           <Command>
             <CommandInput placeholder="Rating To" />
             <CommandList>
-              <CommandEmpty>No results found.</CommandEmpty>
+              <CommandEmpty v-if="!loadingRatingOptions">No rating options available.</CommandEmpty>
+              <CommandEmpty v-if="loadingRatingOptions">Loading rating options...</CommandEmpty>
               <CommandGroup>
                 <CommandItem
                   v-for="option in ratingOptions"
                   :key="option.value"
+                  :value="option.value"
                   :class="cn(
                     'command-item-hover',
                     selectedRatingTo === option.value && 'command-item-selected'

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Button } from '@/components/ui/button'
+import { Menu, X } from 'lucide-vue-next'
 import NavLinks from './NavLinks.vue'
 import UserMenu from './UserMenu.vue'
 import UserProfileDialog from './UserProfileDialog.vue'
@@ -15,7 +16,7 @@ const profileDialogOpen = ref(false)
     <nav class="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur">
       <div class="container flex h-16 items-center">
         <div class="mr-8 flex items-center space-x-2">
-         <Logo />
+         <Logo class="relative top-2 h-8 w-8" />
           <span class="text-xl font-bold">StockInfo</span>
         </div>
 
