@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { Button } from '@/components/ui/button'
+import { Home } from 'lucide-vue-next'
 
 const router = useRouter()
 </script>
@@ -10,12 +12,10 @@ const router = useRouter()
       <h1 class="text-9xl font-bold text-muted">404</h1>
       <p class="text-2xl font-semibold mt-4">Page not found</p>
       <p class="text-muted-foreground mt-2">The page you're looking for doesn't exist.</p>
-      <button
-        class="mt-6 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-        @click="router.push('/stocks')"
-      >
+      <Button class="mt-6" @click="router.push('/stocks')">
+        <Home class="mr-2 h-4 w-4" />
         Go Home
-      </button>
+      </Button>
     </div>
   </div>
 </template>
