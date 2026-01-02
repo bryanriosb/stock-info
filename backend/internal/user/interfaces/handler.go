@@ -27,6 +27,7 @@ type UpdateUserRequest struct {
 	Username string `json:"username,omitempty"`
 	Email    string `json:"email,omitempty"`
 	Password string `json:"password,omitempty"`
+	Role     string `json:"role,omitempty"`
 }
 
 func (h *Handler) Create(c *fiber.Ctx) error {
@@ -94,10 +95,14 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 		Username: req.Username,
 		Email:    req.Email,
 		Password: req.Password,
+		Role:     req.Role,
 	})
 	if err != nil {
 		if errors.Is(err, application.ErrUserNotFound) {
 			return response.NotFound(c, "User not found")
+		}
+		if errors.Is(err, application.ErrLastAdmin) {
+			return response.BadRequest(c, "Cannot remove the last admin")
 		}
 		return response.InternalError(c, "Failed to update user")
 	}
@@ -114,6 +119,9 @@ func (h *Handler) Delete(c *fiber.Ctx) error {
 	if err := h.useCase.Delete(c.Context(), id); err != nil {
 		if errors.Is(err, application.ErrUserNotFound) {
 			return response.NotFound(c, "User not found")
+		}
+		if errors.Is(err, application.ErrLastAdmin) {
+			return response.BadRequest(c, "Cannot delete the last admin")
 		}
 		return response.InternalError(c, "Failed to delete user")
 	}

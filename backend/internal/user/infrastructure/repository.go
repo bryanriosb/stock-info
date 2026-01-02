@@ -59,3 +59,9 @@ func (r *userRepository) FindAll(ctx context.Context) ([]*domain.User, error) {
 	err := r.db.WithContext(ctx).Find(&users).Error
 	return users, err
 }
+
+func (r *userRepository) CountByRole(ctx context.Context, role domain.Role) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&domain.User{}).Where("role = ?", role).Count(&count).Error
+	return count, err
+}

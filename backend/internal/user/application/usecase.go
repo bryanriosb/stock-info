@@ -11,6 +11,7 @@ var (
 	ErrUserNotFound       = errors.New("user not found")
 	ErrUserAlreadyExists  = errors.New("user already exists")
 	ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrLastAdmin          = errors.New("cannot remove the last admin")
 )
 
 type UserUseCase interface {
@@ -32,6 +33,7 @@ type UpdateUserRequest struct {
 	Username string
 	Email    string
 	Password string
+	Role     string
 }
 
 type userUseCase struct {
@@ -99,6 +101,20 @@ func (uc *userUseCase) Update(ctx context.Context, id int64, req UpdateUserReque
 			return nil, err
 		}
 	}
+	if req.Role != "" {
+		newRole := domain.Role(req.Role)
+		// Prevent removing the last admin
+		if user.Role == domain.RoleAdmin && newRole != domain.RoleAdmin {
+			adminCount, err := uc.repo.CountByRole(ctx, domain.RoleAdmin)
+			if err != nil {
+				return nil, err
+			}
+			if adminCount <= 1 {
+				return nil, ErrLastAdmin
+			}
+		}
+		user.Role = newRole
+	}
 
 	if err := uc.repo.Update(ctx, user); err != nil {
 		return nil, err
@@ -108,10 +124,22 @@ func (uc *userUseCase) Update(ctx context.Context, id int64, req UpdateUserReque
 }
 
 func (uc *userUseCase) Delete(ctx context.Context, id int64) error {
-	_, err := uc.repo.FindByID(ctx, id)
+	user, err := uc.repo.FindByID(ctx, id)
 	if err != nil {
 		return ErrUserNotFound
 	}
+
+	// Prevent deleting the last admin
+	if user.Role == domain.RoleAdmin {
+		adminCount, err := uc.repo.CountByRole(ctx, domain.RoleAdmin)
+		if err != nil {
+			return err
+		}
+		if adminCount <= 1 {
+			return ErrLastAdmin
+		}
+	}
+
 	return uc.repo.Delete(ctx, id)
 }
 

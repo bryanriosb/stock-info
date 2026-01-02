@@ -10,4 +10,5 @@ type UserRepository interface {
 	Update(ctx context.Context, user *User) error
 	Delete(ctx context.Context, id int64) error
 	FindAll(ctx context.Context) ([]*User, error)
+	CountByRole(ctx context.Context, role Role) (int64, error)
 }
