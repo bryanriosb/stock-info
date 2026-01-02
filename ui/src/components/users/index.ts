@@ -1,3 +1,5 @@
 export { default as UsersTable } from './UsersTable.vue'
 export { default as UserDeleteDialog } from './UserDeleteDialog.vue'
 export { default as UserEditRoleDialog } from './UserEditRoleDialog.vue'
+export { default as UserForm } from './UserForm.vue'
+export { default as UserFormDialog } from './UserFormDialog.vue'

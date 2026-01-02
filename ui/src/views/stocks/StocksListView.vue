@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { onMounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStocksStore } from '@/stores/stocks.store'
 import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
-import Pagination from '@/components/Pagination.vue'
+import { DataTable } from '@/components/ui/data-table'
+import type { Column, SortState } from '@/components/ui/data-table'
 import RatingBadge from '@/components/RatingBadge.vue'
 import StockFilter from '@/components/StockFilter.vue'
-import { RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Square } from 'lucide-vue-next'
+import { RefreshCw, Square, TrendingUp } from 'lucide-vue-next'
 import type { Stock } from '@/types/stock.types'
 
 const router = useRouter()
@@ -33,6 +32,31 @@ watch(() => store.error, (error) => {
     store.error = null
   }
 })
+
+// Table columns definition
+const columns: Column<Stock>[] = [
+  { key: 'ticker', header: 'Ticker', sortable: true, class: 'font-semibold text-primary' },
+  { key: 'company', header: 'Company', sortable: true, class: 'max-w-[200px] truncate' },
+  { key: 'brokerage', header: 'Brokerage' },
+  { key: 'rating_from', header: 'Rating From' },
+  { key: 'rating_to', header: 'Rating To' },
+  { key: 'target_from', header: 'Target From', class: 'text-right font-mono', headerClass: 'text-right' },
+  { key: 'target_to', header: 'Target To', sortable: true, class: 'text-right font-mono font-semibold', headerClass: 'text-right justify-end' },
+  { key: 'time', header: 'Date', sortable: true, class: 'text-muted-foreground' },
+  { key: 'updated_at', header: 'Synced', class: 'text-xs text-muted-foreground' },
+]
+
+// Sort state from store
+const sortState = computed<SortState | undefined>(() => {
+  if (!store.queryParams.sort_by) return undefined
+  return {
+    field: store.queryParams.sort_by,
+    direction: store.queryParams.sort_dir as 'asc' | 'desc',
+  }
+})
+
+// Pagination meta from store
+const paginationMeta = computed(() => store.meta ?? undefined)
 
 function handleSort(field: string) { store.setSort(field) }
 function handlePageChange(page: number) { store.setPage(page) }
@@ -72,11 +96,6 @@ function formatDateTime(dateStr: string) {
     hour: '2-digit',
     minute: '2-digit',
   })
-}
-
-function getSortIcon(field: string) {
-  if (store.queryParams.sort_by !== field) return ArrowUpDown
-  return store.queryParams.sort_dir === 'asc' ? ArrowUp : ArrowDown
 }
 </script>
 
@@ -122,49 +141,40 @@ function getSortIcon(field: string) {
 
     <Card>
       <CardContent class="p-0">
-        <div v-if="store.loading" class="p-6 space-y-4">
-          <Skeleton v-for="i in 5" :key="i" class="h-12 w-full" />
-        </div>
-        <Table v-else>
-          <TableHeader>
-            <TableRow>
-              <TableHead class="cursor-pointer" @click="handleSort('ticker')">
-                <div class="flex items-center gap-2">Ticker<component :is="getSortIcon('ticker')" class="h-4 w-4" /></div>
-              </TableHead>
-              <TableHead class="cursor-pointer" @click="handleSort('company')">
-                <div class="flex items-center gap-2">Company<component :is="getSortIcon('company')" class="h-4 w-4" /></div>
-              </TableHead>
-              <TableHead>Brokerage</TableHead>
-              <TableHead>Rating From</TableHead>
-              <TableHead>Rating To</TableHead>
-              <TableHead class="text-right">Target From</TableHead>
-              <TableHead class="text-right cursor-pointer" @click="handleSort('target_to')">
-                <div class="flex items-center justify-end gap-2">Target To<component :is="getSortIcon('target_to')" class="h-4 w-4" /></div>
-              </TableHead>
-              <TableHead class="cursor-pointer" @click="handleSort('time')">
-                <div class="flex items-center gap-2">Date<component :is="getSortIcon('time')" class="h-4 w-4" /></div>
-              </TableHead>
-              <TableHead>Synced</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow v-if="store.stocks.length === 0">
-              <TableCell colspan="9" class="text-center py-12 text-muted-foreground">No stocks found</TableCell>
-            </TableRow>
-            <TableRow v-for="stock in store.stocks" :key="stock.id" class="cursor-pointer hover:bg-muted/50" @click="handleRowClick(stock)">
-              <TableCell class="font-semibold text-primary">{{ stock.ticker }}</TableCell>
-              <TableCell class="max-w-[200px] truncate">{{ stock.company }}</TableCell>
-              <TableCell>{{ stock.brokerage }}</TableCell>
-              <TableCell><RatingBadge :rating="stock.rating_from" /></TableCell>
-              <TableCell><RatingBadge :rating="stock.rating_to" /></TableCell>
-              <TableCell class="text-right font-mono">{{ formatCurrency(stock.target_from) }}</TableCell>
-              <TableCell class="text-right font-mono font-semibold">{{ formatCurrency(stock.target_to) }}</TableCell>
-              <TableCell class="text-muted-foreground">{{ formatDate(stock.time) }}</TableCell>
-              <TableCell class="text-xs text-muted-foreground">{{ formatDateTime(stock.updated_at) }}</TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-        <Pagination v-if="store.meta && store.meta.total_pages > 1" :current-page="store.meta.page" :total-pages="store.meta.total_pages" :total-items="store.meta.total" :limit="store.meta.limit" @page-change="handlePageChange" />
+        <DataTable
+          :data="store.stocks"
+          :columns="columns"
+          :loading="store.loading"
+          :sort="sortState"
+          :pagination="paginationMeta"
+          :row-clickable="true"
+          :empty-icon="TrendingUp"
+          empty-title="No stocks found"
+          empty-description="Try adjusting your filters or sync from API"
+          @sort="handleSort"
+          @page-change="handlePageChange"
+          @row-click="handleRowClick"
+        >
+          <!-- Custom cell renderers -->
+          <template #cell-rating_from="{ row }">
+            <RatingBadge :rating="row.rating_from" />
+          </template>
+          <template #cell-rating_to="{ row }">
+            <RatingBadge :rating="row.rating_to" />
+          </template>
+          <template #cell-target_from="{ row }">
+            {{ formatCurrency(row.target_from) }}
+          </template>
+          <template #cell-target_to="{ row }">
+            {{ formatCurrency(row.target_to) }}
+          </template>
+          <template #cell-time="{ row }">
+            {{ formatDate(row.time) }}
+          </template>
+          <template #cell-updated_at="{ row }">
+            {{ formatDateTime(row.updated_at) }}
+          </template>
+        </DataTable>
       </CardContent>
     </Card>
   </div>

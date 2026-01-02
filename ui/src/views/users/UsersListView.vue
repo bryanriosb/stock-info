@@ -2,10 +2,13 @@
 import { onMounted, ref, computed } from 'vue'
 import { usersApi } from '@/api/users.api'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { UsersTable, UserDeleteDialog, UserEditRoleDialog } from '@/components/users'
-import { RefreshCw } from 'lucide-vue-next'
+import { DataTable } from '@/components/ui/data-table'
+import type { Column } from '@/components/ui/data-table'
+import { UserDeleteDialog, UserFormDialog } from '@/components/users'
+import { RefreshCw, Pencil, Trash2, Shield, User as UserIcon, Users } from 'lucide-vue-next'
 import type { User } from '@/types/user.types'
 
 const users = ref<User[]>([])
@@ -22,6 +25,16 @@ const userToEdit = ref<User | null>(null)
 
 // Computed: count admins
 const adminCount = computed(() => users.value.filter(u => u.role === 'admin').length)
+
+// Table columns definition
+const columns: Column<User>[] = [
+  { key: 'id', header: 'ID', class: 'font-mono text-muted-foreground' },
+  { key: 'username', header: 'Username', class: 'font-medium' },
+  { key: 'email', header: 'Email' },
+  { key: 'role', header: 'Role' },
+  { key: 'created_at', header: 'Created', class: 'text-muted-foreground' },
+  { key: 'actions', header: 'Actions', headerClass: 'text-right', class: 'text-right' },
+]
 
 async function fetchUsers() {
   loading.value = true
@@ -61,6 +74,17 @@ function handleUserDeleted(userId: number) {
   users.value = users.value.filter(u => u.id !== userId)
 }
 
+function formatDate(dateStr: string) {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return '-'
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function isLastAdmin(user: User): boolean {
+  return user.role === 'admin' && adminCount.value === 1
+}
+
 onMounted(fetchUsers)
 </script>
 
@@ -83,13 +107,49 @@ onMounted(fetchUsers)
 
     <Card>
       <CardContent class="p-0">
-        <UsersTable
-          :users="users"
+        <DataTable
+          :data="users"
+          :columns="columns"
           :loading="loading"
-          :admin-count="adminCount"
-          @edit="handleEditUser"
-          @delete="handleDeleteUser"
-        />
+          :empty-icon="Users"
+          empty-title="No users found"
+          empty-description="No users have been registered yet"
+        >
+          <!-- Role badge -->
+          <template #cell-role="{ row }">
+            <Badge
+              :variant="row.role === 'admin' ? 'default' : 'secondary'"
+              class="gap-1"
+            >
+              <Shield v-if="row.role === 'admin'" class="h-3 w-3" />
+              <UserIcon v-else class="h-3 w-3" />
+              {{ row.role }}
+            </Badge>
+          </template>
+
+          <!-- Created date -->
+          <template #cell-created_at="{ row }">
+            {{ formatDate(row.created_at) }}
+          </template>
+
+          <!-- Actions -->
+          <template #cell-actions="{ row }">
+            <div class="space-x-1">
+              <Button variant="ghost" size="icon" @click.stop="handleEditUser(row)">
+                <Pencil class="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                @click.stop="handleDeleteUser(row)"
+                :disabled="isLastAdmin(row)"
+                :title="isLastAdmin(row) ? 'Cannot delete the last admin' : 'Delete user'"
+              >
+                <Trash2 class="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+          </template>
+        </DataTable>
       </CardContent>
     </Card>
 
@@ -99,10 +159,11 @@ onMounted(fetchUsers)
       @deleted="handleUserDeleted"
     />
 
-    <UserEditRoleDialog
+    <UserFormDialog
       v-model:open="editDialogOpen"
       :user="userToEdit"
       :admin-count="adminCount"
+      mode="edit"
       @updated="handleUserUpdated"
     />
   </div>
