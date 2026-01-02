@@ -15,9 +15,9 @@ import (
 
 // SyncProgress represents the current sync progress
 type SyncProgress struct {
-	Current int `json:"current"`
-	Total   int `json:"total"`
-	Percent int `json:"percent"`
+	Current int    `json:"current"`
+	Total   int    `json:"total"`
+	Percent int    `json:"percent"`
 	Status  string `json:"status"` // "fetching", "saving", "completed", "error"
 	Message string `json:"message,omitempty"`
 }
@@ -45,6 +45,7 @@ type StockItem struct {
 	RatingTo   string `json:"rating_to"`
 	TargetFrom string `json:"target_from"`
 	TargetTo   string `json:"target_to"`
+	Time       string `json:"time"`
 }
 
 type stockAPIClient struct {
@@ -104,20 +105,24 @@ func (c *stockAPIClient) FetchAllStocksWithProgress(ctx context.Context, onProgr
 	nextPage := ""
 	pageCount := 0
 
-	// Estimate total pages (we'll update as we go)
-	estimatedTotal := 100 // Initial estimate
+	// Known total pages from API
+	const totalPages = 2184
 
 	for {
 		pageCount++
 
 		if onProgress != nil {
-			percent := min((pageCount*100)/estimatedTotal, 95) // Cap at 95% during fetch
+			// Calculate percent based on actual progress (reserve 5% for saving)
+			percent := (pageCount * 95) / totalPages
+			if percent > 95 {
+				percent = 95
+			}
 			onProgress(SyncProgress{
-				Current: len(allStocks),
-				Total:   estimatedTotal * 50, // Rough estimate of items per page
+				Current: pageCount,
+				Total:   totalPages,
 				Percent: percent,
 				Status:  "fetching",
-				Message: fmt.Sprintf("Fetching page %d...", pageCount),
+				Message: fmt.Sprintf("Fetching page %d of %d...", pageCount, totalPages),
 			})
 		}
 
@@ -141,12 +146,6 @@ func (c *stockAPIClient) FetchAllStocksWithProgress(ctx context.Context, onProgr
 			break
 		}
 		nextPage = response.NextPage
-
-		// Update estimate based on progress
-		if pageCount == 1 && len(response.Items) > 0 {
-			// After first page, estimate total pages better
-			estimatedTotal = max(pageCount+10, 50)
-		}
 	}
 
 	return allStocks, nil
@@ -162,7 +161,24 @@ func itemToEntity(item StockItem) *domain.Stock {
 		RatingTo:   item.RatingTo,
 		TargetFrom: parsePrice(item.TargetFrom),
 		TargetTo:   parsePrice(item.TargetTo),
+		Time:       parseTime(item.Time),
 	}
+}
+
+func parseTime(timeStr string) time.Time {
+	// Try common formats
+	formats := []string{
+		"2006-01-02T15:04:05Z",
+		"2006-01-02 15:04:05",
+		"2006-01-02",
+		time.RFC3339,
+	}
+	for _, format := range formats {
+		if t, err := time.Parse(format, timeStr); err == nil {
+			return t
+		}
+	}
+	return time.Time{}
 }
 
 func parsePrice(price string) float64 {

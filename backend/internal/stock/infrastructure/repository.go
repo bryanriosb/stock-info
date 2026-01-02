@@ -28,8 +28,15 @@ func (r *stockRepository) CreateBatch(ctx context.Context, stocks []*domain.Stoc
 		return nil
 	}
 
+	// Upsert: update existing records based on ticker+brokerage unique constraint
 	return r.db.WithContext(ctx).
-		Clauses(clause.OnConflict{DoNothing: true}).
+		Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "ticker"}, {Name: "brokerage"}},
+			DoUpdates: clause.AssignmentColumns([]string{
+				"company", "action", "rating_from", "rating_to",
+				"target_from", "target_to", "time", "updated_at",
+			}),
+		}).
 		CreateInBatches(stocks, 100).Error
 }
 
@@ -59,7 +66,7 @@ func (r *stockRepository) FindAll(ctx context.Context, params domain.QueryParams
 	}
 
 	sortBy := "id"
-	allowed := map[string]bool{"id": true, "ticker": true, "company": true, "target_to": true, "created_at": true}
+	allowed := map[string]bool{"id": true, "ticker": true, "company": true, "target_to": true, "time": true, "created_at": true}
 	if params.SortBy != "" && allowed[params.SortBy] {
 		sortBy = params.SortBy
 	}

@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
 import Pagination from '@/components/Pagination.vue'
 import RatingBadge from '@/components/RatingBadge.vue'
-import { RefreshCw, Search, X, ArrowUpDown, ArrowUp, ArrowDown, StopCircle } from 'lucide-vue-next'
+import { RefreshCw, Search, X, ArrowUpDown, ArrowUp, ArrowDown, StopCircle, Square } from 'lucide-vue-next'
 import type { Stock } from '@/types/stock.types'
 
 const router = useRouter()
@@ -55,6 +55,25 @@ function formatCurrency(v: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v)
 }
 
+function formatDate(dateStr: string) {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return '-'
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function formatDateTime(dateStr: string) {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return '-'
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 function getSortIcon(field: string) {
   if (store.queryParams.sort_by !== field) return ArrowUpDown
   return store.queryParams.sort_dir === 'asc' ? ArrowUp : ArrowDown
@@ -75,12 +94,12 @@ function getSortIcon(field: string) {
             {{ store.syncing ? 'Syncing...' : 'Sync from API' }}
           </Button>
           <Button v-if="store.syncing" variant="outline" @click="handleCancelSync">
-            <StopCircle class="mr-2 h-4 w-4" />
+            <Square class="mr-2 h-4 w-4" />
             Cancel
           </Button>
         </div>
         <!-- Progress bar -->
-        <div v-if="store.syncProgress" class="w-64 space-y-1">
+        <div v-if="store.syncProgress" class="w-full space-y-1">
           <div class="flex justify-between text-xs text-muted-foreground">
             <span>{{ store.syncProgress.message }}</span>
             <span>{{ store.syncProgress.percent }}%</span>
@@ -131,11 +150,15 @@ function getSortIcon(field: string) {
               <TableHead class="text-right cursor-pointer" @click="handleSort('target_to')">
                 <div class="flex items-center justify-end gap-2">Target To<component :is="getSortIcon('target_to')" class="h-4 w-4" /></div>
               </TableHead>
+              <TableHead class="cursor-pointer" @click="handleSort('time')">
+                <div class="flex items-center gap-2">Date<component :is="getSortIcon('time')" class="h-4 w-4" /></div>
+              </TableHead>
+              <TableHead>Synced</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             <TableRow v-if="store.stocks.length === 0">
-              <TableCell colspan="7" class="text-center py-12 text-muted-foreground">No stocks found</TableCell>
+              <TableCell colspan="9" class="text-center py-12 text-muted-foreground">No stocks found</TableCell>
             </TableRow>
             <TableRow v-for="stock in store.stocks" :key="stock.id" class="cursor-pointer hover:bg-muted/50" @click="handleRowClick(stock)">
               <TableCell class="font-semibold text-primary">{{ stock.ticker }}</TableCell>
@@ -145,6 +168,8 @@ function getSortIcon(field: string) {
               <TableCell><RatingBadge :rating="stock.rating_to" /></TableCell>
               <TableCell class="text-right font-mono">{{ formatCurrency(stock.target_from) }}</TableCell>
               <TableCell class="text-right font-mono font-semibold">{{ formatCurrency(stock.target_to) }}</TableCell>
+              <TableCell class="text-muted-foreground">{{ formatDate(stock.time) }}</TableCell>
+              <TableCell class="text-xs text-muted-foreground">{{ formatDateTime(stock.updated_at) }}</TableCell>
             </TableRow>
           </TableBody>
         </Table>

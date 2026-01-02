@@ -9,6 +9,13 @@ import (
 func JWTProtected(secret string) fiber.Handler {
 	return jwtware.New(jwtware.Config{
 		SigningKey: jwtware.SigningKey{Key: []byte(secret)},
+		// Support token from query param for SSE (EventSource doesn't support headers)
+		Filter: func(c *fiber.Ctx) bool {
+			if token := c.Query("token"); token != "" {
+				c.Request().Header.Set("Authorization", "Bearer "+token)
+			}
+			return false // never skip validation
+		},
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"success": false,

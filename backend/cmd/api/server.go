@@ -12,9 +12,13 @@ import (
 
 func newFiberApp() *fiber.App {
 	app := fiber.New(fiber.Config{
-		AppName:      "Stock Info API",
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		AppName:               "Stock Info API",
+		ReadTimeout:           30 * time.Second,
+		WriteTimeout:          0, // Disabled for SSE streaming
+		IdleTimeout:           120 * time.Second,
+		DisableKeepalive:      false,
+		StreamRequestBody:     true,
+		DisableStartupMessage: false,
 	})
 
 	app.Use(recover.New())

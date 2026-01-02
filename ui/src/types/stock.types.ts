@@ -8,6 +8,7 @@ export interface Stock {
   rating_to: string
   target_from: number
   target_to: number
+  time: string
   created_at: string
   updated_at: string
 }
@@ -15,7 +16,7 @@ export interface Stock {
 export interface StockQueryParams {
   page?: number
   limit?: number
-  sort_by?: 'id' | 'ticker' | 'company' | 'target_to' | 'created_at'
+  sort_by?: 'id' | 'ticker' | 'company' | 'target_to' | 'time' | 'created_at'
   sort_dir?: 'asc' | 'desc'
   ticker?: string
   company?: string
