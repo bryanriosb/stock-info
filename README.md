@@ -205,7 +205,6 @@ bun dev
 
 - **Frontend Application**: http://localhost:5173
 - **Backend API**: http://localhost:5000
-- **API Documentation**: http://localhost:5000/docs
 - **Health Check**: http://localhost:5000/health
 - **Database**: postgres://root@localhost:26257/stock_info?sslmode=disable
 
@@ -214,7 +213,6 @@ bun dev
 ### Backend Documentation
 - **[Backend README](backend/README.md)** - Complete API documentation
 - **[Recommendation Algorithm](backend/docs/RECOMMENDATION-ALGORITHM.md)** - Investment analysis logic
-- **[Development Plan](backend/docs/PLAN.md)** - Backend architecture decisions
 
 ### Frontend Documentation
 - **[UI README](ui/README.md)** - Frontend development guide
@@ -287,26 +285,6 @@ Score = (Rating_Change × 0.3) + (Target_Price_Change × 0.4) + (_Action_Type ×
 - **Error Sanitization**: Secure error message handling
 - **HTTPS Ready**: Production SSL/TLS enforcement
 
-## 📊 Performance Metrics
-
-### Backend Performance
-- **Throughput**: 50,000+ requests/second
-- **Response Time**: Sub-millisecond for database queries
-- **Memory Usage**: <100MB for typical workloads
-- **Startup Time**: <2 seconds cold start
-
-### Frontend Performance
-- **First Contentful Paint**: <1.5 seconds
-- **Largest Contentful Paint**: <2.5 seconds
-- **Bundle Size**: <1MB gzipped production build
-- **Time to Interactive**: <3.5 seconds
-
-### Database Performance
-- **Query Optimization**: Indexed columns and query plans
-- **Connection Pooling**: Efficient database connections
-- **Distributed Architecture**: CockroachDB horizontal scaling
-- **ACID Compliance**: Data consistency guarantees
-
 ## 🧪 Testing Strategy
 
 ### Backend Testing
@@ -368,36 +346,63 @@ serve -s dist -l 3000
 
 ### Commands
 
+#### Backend Commands
 ```bash
-# Development
-make dev              # Start backend with hot reload
-cd ui && bun dev      # Start frontend dev server
-
-# Testing
-make test             # Run backend tests
-cd ui && npm test     # Run frontend tests
-
-# Building
-make build            # Build backend binary
-cd ui && npm build    # Build frontend assets
-
-# Linting
-make lint             # Backend linting
-cd ui && npm run lint # Frontend linting
+make backend-dev          # Start backend with hot reload
+make backend-test         # Run backend tests
+make backend-test-cover    # Run backend tests with coverage
+make backend-build        # Build backend binary
+make backend-lint         # Backend linting
+make backend-fmt          # Go code formatting
+make backend-deps         # Download dependencies
+make backend-up           # Start backend container
+make backend-logs         # View backend logs
 ```
 
-### Git Workflow
-
+#### Frontend Commands
 ```bash
-# Feature development
-git checkout -b feature/new-feature
-git add .
-git commit -m "feat: add new feature"
-git push origin feature/new-feature
+make frontend-dev        # Start frontend dev server (uses bun)
+make frontend-test       # Run frontend tests
+make frontend-test-cover # Run frontend tests with coverage
+make frontend-build      # Build frontend assets
+make frontend-lint       # Frontend linting
+make frontend-lint-fix   # Auto-fix linting issues
+make frontend-type-check # TypeScript type checking
+make frontend-up         # Start frontend container
+make frontend-logs       # View frontend logs
+```
 
-# Pull request creation
-# Create PR through GitHub interface
-# Review and merge
+#### Database Commands
+```bash
+make migrate-up          # Run all pending migrations
+make migrate-down        # Rollback last migration
+make migrate-create name=example  # Create new migration
+make migrate-version     # Show current migration version
+make db-up              # Start database container
+make db-down            # Stop and remove database container
+```
+
+#### Docker & Combined Operations
+```bash
+make up                 # Start all services with docker-compose
+make down               # Stop all services
+make rebuild            # Rebuild and start all services
+make logs               # View logs from all services
+```
+
+#### Quick Commands
+```bash
+# Development workflow
+make up                 # Start everything
+make frontend-dev        # Work on frontend
+make backend-dev         # Work on backend
+
+# Testing workflow
+make frontend-test && make backend-test  # Run all tests
+make frontend-test-cover && make backend-test-cover  # Run with coverage
+
+# Build workflow
+make frontend-build && make backend-build  # Build both
 ```
 
 ## 📈 Roadmap
@@ -406,11 +411,10 @@ git push origin feature/new-feature
 - [ ] Advanced filtering and search capabilities
 - [ ] Portfolio tracking and management
 - [ ] Email notifications for recommendations
-- [ ] Mobile application (React Native)
 - [ ] Advanced analytics dashboard
 
 ### Version 1.2 (Future)
-- [ ] Enhanced algorithmic scoring models
+- [ ] Enhanced algorithmic scoring models with AI
 - [ ] Real-time market data streaming
 - [ ] Social features and community insights
 - [ ] Advanced charting and technical indicators
@@ -455,8 +459,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support & Community
 
-- **Issues**: [GitHub Issues](https://github.com/your-org/stock-info/issues) for bug reports and feature requests
-- **Discussions**: [GitHub Discussions](https://github.com/your-org/stock-info/discussions) for questions and community engagement
+- **Issues**: [GitHub Issues](https://github.com/bryanriosb/stock-info/issues) for bug reports and feature requests
+- **Discussions**: [GitHub Discussions](https://github.com/bryanriosb/stock-info/discussions) for questions and community engagement
 - **Documentation**: Check individual README files in backend/ and ui/ directories
 - **API Reference**: See [Backend README](backend/README.md) for complete API documentation
 
@@ -469,7 +473,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Open Source Community**: For all the incredible tools and libraries
 
 ---
-
-Built with ❤️ by developers passionate about fintech, clean architecture, and exceptional user experiences.
 
 **Stock Info** - Empowering smarter investment decisions through technology.
