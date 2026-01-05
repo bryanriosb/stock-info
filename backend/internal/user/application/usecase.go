@@ -45,13 +45,13 @@ func NewUserUseCase(repo domain.UserRepository) UserUseCase {
 }
 
 func (uc *userUseCase) Create(ctx context.Context, req CreateUserRequest) (*domain.User, error) {
-	existing, _ := uc.repo.FindByUsername(ctx, req.Username)
-	if existing != nil {
+	existing, err := uc.repo.FindByUsername(ctx, req.Username)
+	if err == nil && existing != nil {
 		return nil, ErrUserAlreadyExists
 	}
 
-	existing, _ = uc.repo.FindByEmail(ctx, req.Email)
-	if existing != nil {
+	existing, err = uc.repo.FindByEmail(ctx, req.Email)
+	if err == nil && existing != nil {
 		return nil, ErrUserAlreadyExists
 	}
 

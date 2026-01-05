@@ -87,7 +87,7 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 	}
 
 	var req UpdateUserRequest
-	if err := c.BodyParser(&req); err != nil {
+	if parseErr := c.BodyParser(&req); parseErr != nil {
 		return response.BadRequest(c, "Invalid request body")
 	}
 

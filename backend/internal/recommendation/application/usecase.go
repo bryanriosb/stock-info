@@ -34,7 +34,7 @@ func (uc *recommendationUseCase) GetRecommendations(ctx context.Context, limit i
 		return nil, err
 	}
 
-	var recommendations []*domain.StockRecommendation
+	recommendations := make([]*domain.StockRecommendation, 0, len(stocks))
 	for _, stock := range stocks {
 		score, reason := calculateScore(stock)
 		potentialGain := calculatePotentialGain(stock)

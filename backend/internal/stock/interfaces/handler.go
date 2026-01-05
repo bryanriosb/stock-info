@@ -163,6 +163,9 @@ func (h *Handler) SyncStocksStream(c *fiber.Ctx) error {
 }
 
 func mustJSON(v interface{}) string {
-	data, _ := json.Marshal(v)
+	data, err := json.Marshal(v)
+	if err != nil {
+		return "{}"
+	}
 	return string(data)
 }

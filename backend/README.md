@@ -504,10 +504,9 @@ make docker-run       # Run with Docker
 
 ### Guidelines
 - Follow Go best practices
-- Maintain test coverage
+- Maintain test coverage >80%
 - Update documentation
 - Use conventional commits
-- Pass all CI checks
 
 ## 📝 Changelog
 

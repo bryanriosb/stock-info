@@ -6,6 +6,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+const defaultRole = "user"
+
 func JWTProtected(secret string) fiber.Handler {
 	return jwtware.New(jwtware.Config{
 		SigningKey: jwtware.SigningKey{Key: []byte(secret)},
@@ -26,18 +28,34 @@ func JWTProtected(secret string) fiber.Handler {
 }
 
 func GetUserFromToken(c *fiber.Ctx) string {
-	token := c.Locals("user").(*jwt.Token)
-	claims := token.Claims.(jwt.MapClaims)
-	return claims["sub"].(string)
+	token, ok := c.Locals("user").(*jwt.Token)
+	if !ok {
+		return ""
+	}
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return ""
+	}
+	sub, ok := claims["sub"].(string)
+	if !ok {
+		return ""
+	}
+	return sub
 }
 
 func GetRoleFromToken(c *fiber.Ctx) string {
-	token := c.Locals("user").(*jwt.Token)
-	claims := token.Claims.(jwt.MapClaims)
+	token, ok := c.Locals("user").(*jwt.Token)
+	if !ok {
+		return defaultRole
+	}
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return defaultRole
+	}
 	if role, ok := claims["role"].(string); ok {
 		return role
 	}
-	return "user"
+	return defaultRole
 }
 
 func RequireAdmin() fiber.Handler {

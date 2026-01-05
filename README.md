@@ -72,7 +72,7 @@ stock-info/
 │   └── tests/                # Test files
 ├── docs/                     # Project documentation
 ├── compose.yml               # Docker Compose
-├── .github/                  # GitHub Actions
+├── .env.example              # Environment template
 ├── Makefile                  # Build commands
 └── README.md                 # This file
 ```
@@ -113,7 +113,7 @@ stock-info/
 | **Container** | Docker | Application containerization |
 | **Orchestration** | Docker Compose | Multi-container deployment |
 | **Database** | CockroachDB | Distributed SQL database |
-| **CI/CD** | GitHub Actions | Automated workflows |
+| **Version Control** | Git | Source code management |
 | **Documentation** | Markdown | Technical documentation |
 
 ## 🚀 Quick Start
@@ -322,10 +322,9 @@ Score = (Rating_Change × 0.3) + (Target_Price_Change × 0.4) + (_Action_Type ×
 - **Visual Testing**: Component regression testing
 
 ### Quality Assurance
-- **Code Coverage**: Automated coverage reporting
-- **Linting**: ESLint, Go fmt, and Prettier
+- **Code Coverage**: Coverage reporting with Istanbul (frontend) and Go coverage (backend)
+- **Linting**: Go fmt and golangci-lint for backend
 - **Type Checking**: Strict TypeScript and Go compilation
-- **CI/CD**: Automated testing on all pull requests
 
 ## 🚀 Deployment
 
@@ -398,8 +397,7 @@ git push origin feature/new-feature
 
 # Pull request creation
 # Create PR through GitHub interface
-# Automated CI/CD runs tests and checks
-# Merge after review
+# Review and merge
 ```
 
 ## 📈 Roadmap
@@ -448,7 +446,7 @@ We welcome contributions from the community! Here's how to get started:
 - **Frontend**: UI improvements, new components, mobile optimization
 - **Backend**: API enhancements, performance optimizations, new features
 - **Documentation**: Guides, examples, API documentation
-- **Testing**: Test coverage, automated testing, CI/CD improvements
+- **Testing**: Test coverage improvements and new test scenarios
 - **Infrastructure**: Docker improvements, deployment scripts, monitoring
 
 ## 📄 License

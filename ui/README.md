@@ -2,7 +2,7 @@
 
 [![Vue Version](https://img.shields.io/badge/Vue-3.4+-green.svg)](https://vuejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
-[![Vite](https://img.shields.io/badge/Vite-5.0+-orange.svg)](https://vitejs.dev/)
+[![Vite](https://img.shields.io/badge/Vite-7.0+-orange.svg)](https://vitejs.dev/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 A modern, responsive web application for stock market analysis and recommendations, built with Vue 3, TypeScript, and Tailwind CSS.
@@ -112,7 +112,7 @@ ui/
 |----------|-------------|---------|
 | **Framework** | Vue 3.4+ | Progressive JavaScript framework |
 | **Language** | TypeScript 5.0+ | Type-safe development |
-| **Build Tool** | Vite 5.0+ | Fast development and building |
+| **Build Tool** | Vite 7.0+ | Fast development and building |
 | **Styling** | Tailwind CSS 3.0+ | Utility-first CSS framework |
 | **Components** | shadcn-vue | High-quality UI components |
 | **State** | Pinia 2.0+ | Vue state management |
@@ -514,55 +514,75 @@ export default {
 
 ### Test Setup
 
+The project uses **Vitest** with **Vue Test Utils** and **@pinia/testing** for comprehensive testing.
+
 ```bash
-# Install testing dependencies
-npm install -D vitest @vue/test-utils jsdom
+# Testing dependencies (already installed)
+# vitest, @vue/test-utils, @pinia/testing, jsdom, @vitest/coverage-istanbul
 ```
 
-### Component Testing
+### Test Structure
+
+```
+src/
+├── components/
+│   ├── RatingBadge.spec.ts      # Component tests
+│   ├── Pagination.spec.ts
+│   └── Logo.spec.ts
+├── stores/
+│   └── __tests__/
+│       ├── auth.store.spec.ts    # Store tests
+│       ├── stocks.store.spec.ts
+│       └── recommendations.store.spec.ts
+└── test/
+    └── setup.ts                  # Test setup configuration
+```
+
+### Component Testing Example
 
 ```typescript
-// tests/components/Button.test.ts
+// src/components/RatingBadge.spec.ts
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
-import Button from '@/components/ui/button/Button.vue'
+import RatingBadge from './RatingBadge.vue'
 
-describe('Button', () => {
-  it('renders correctly', () => {
-    const wrapper = mount(Button, {
-      slots: { default: 'Click me' }
+describe('RatingBadge', () => {
+  it('renders the rating text', () => {
+    const wrapper = mount(RatingBadge, {
+      props: { rating: 'Buy' },
     })
-    
-    expect(wrapper.text()).toContain('Click me')
-    expect(wrapper.classes()).toContain('inline-flex')
+    expect(wrapper.text()).toContain('Buy')
   })
-  
-  it('applies variant styles', () => {
-    const wrapper = mount(Button, {
-      props: { variant: 'destructive' }
+
+  it('applies success styling for buy ratings', () => {
+    const wrapper = mount(RatingBadge, {
+      props: { rating: 'Strong Buy' },
     })
-    
-    expect(wrapper.classes()).toContain('bg-destructive')
+    expect(wrapper.find('.bg-success\\/10').exists()).toBe(true)
   })
 })
 ```
 
-### Store Testing
+### Store Testing Example
 
 ```typescript
-// tests/stores/auth.test.ts
-import { describe, it, expect, beforeEach } from 'vitest'
+// src/stores/__tests__/auth.store.spec.ts
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { useAuthStore } from '@/stores/auth.store'
+import { useAuthStore } from '../auth.store'
+
+vi.mock('@/api/auth.api', () => ({
+  authApi: { login: vi.fn(), register: vi.fn(), logout: vi.fn() },
+}))
 
 describe('Auth Store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    vi.clearAllMocks()
   })
-  
+
   it('initializes with no user', () => {
     const authStore = useAuthStore()
-    
     expect(authStore.isAuthenticated).toBe(false)
     expect(authStore.user).toBe(null)
   })
@@ -572,18 +592,21 @@ describe('Auth Store', () => {
 ### Running Tests
 
 ```bash
-# Run all tests
-npm run test
-
 # Run tests in watch mode
-npm run test:watch
+bun run test
 
-# Run tests with coverage
-npm run test:coverage
+# Run tests once
+bun run test:run
 
-# Run component tests only
-npm run test:components
+# Run tests with coverage report
+bun run test:coverage
 ```
+
+### Current Test Coverage
+
+- **71 tests** across 6 test files
+- **Stores**: ~90% coverage (auth, stocks, recommendations)
+- **Components**: 100% coverage for custom components (RatingBadge, Pagination, Logo)
 
 ## 🚀 Deployment
 
@@ -721,33 +744,25 @@ npm run test             # Run tests
 npm run test:coverage    # Run with coverage
 npm run test:e2e         # End-to-end tests
 
-# Linting & Formatting
-npm run lint             # ESLint check
-npm run lint:fix         # Auto-fix ESLint issues
-npm run format           # Prettier formatting
-
 # Type checking
 npm run type-check       # TypeScript checking
 ```
 
 ### Code Quality Tools
 
-- **ESLint**: JavaScript/TypeScript linting
-- **Prettier**: Code formatting
 - **TypeScript**: Static type checking
 - **Vue DevTools**: Vue application debugging
-- **Vitest**: Fast unit testing
+- **Vitest**: Fast unit testing with coverage
 
-### Git Hooks
+### Recommended Workflow
 
 ```bash
-# Pre-commit hooks
-npm run lint           # Check code style
-npm run type-check     # Verify types
-npm run test          # Run tests
+# Before committing
+bun run test:run       # Verify tests pass
+bun run type-check     # Verify types (optional)
 
-# Pre-push hooks
-npm run build        # Verify build succeeds
+# Before pushing
+bun run build          # Verify build succeeds
 ```
 
 ## 🤝 Contributing

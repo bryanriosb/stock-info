@@ -186,6 +186,9 @@ func parsePrice(price string) float64 {
 	cleaned = strings.ReplaceAll(cleaned, ",", "")
 	cleaned = strings.TrimSpace(cleaned)
 
-	value, _ := strconv.ParseFloat(cleaned, 64)
+	value, err := strconv.ParseFloat(cleaned, 64)
+	if err != nil {
+		return 0
+	}
 	return value
 }

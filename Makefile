@@ -3,6 +3,9 @@
 	backend-test-unit backend-test-integration backend-clean backend-tidy backend-lint \
 	backend-fmt backend-fmt-check backend-deps backend-mocks \
 	backend-up backend-stop backend-down backend-logs backend-restart backend-rebuild \
+	frontend-dev frontend-build frontend-test frontend-test-run frontend-test-cover \
+	frontend-lint frontend-lint-fix frontend-type-check frontend-up frontend-stop \
+	frontend-down frontend-logs frontend-restart frontend-rebuild \
 	migrate-up migrate-down migrate-create migrate-version migrate-force
 
 # Variables
@@ -11,6 +14,7 @@ BACKEND_APP_NAME=stock-info-api
 BACKEND_BUILD_DIR=$(BACKEND_DIR)/bin
 BACKEND_MAIN_PATH=$(BACKEND_DIR)/cmd/api
 MIGRATIONS_DIR=$(BACKEND_DIR)/migrations
+FRONTEND_DIR=./ui
 
 # Database connection for migrations (loaded from .env or defaults)
 DB_HOST ?= localhost
@@ -84,7 +88,7 @@ backend-tidy:
 ## Run backend linter (requires golangci-lint)
 backend-lint:
 	@echo "Running backend linter..."
-	@cd $(BACKEND_DIR) && golangci-lint run ./...
+	@cd $(BACKEND_DIR) && $(shell go env GOPATH)/bin/golangci-lint run ./...
 
 ## Format backend code
 backend-fmt:
@@ -175,14 +179,77 @@ migrate-force:
 	@migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" force $(version)
 
 # =============================================================================
-# UI COMMANDS (placeholder for future)
+# FRONTEND COMMANDS
 # =============================================================================
 
+## Run frontend development server
+frontend-dev:
+	@echo "Starting frontend development server..."
+	@cd $(FRONTEND_DIR) && bun run dev
+
+## Build frontend for production
+frontend-build:
+	@echo "Building frontend..."
+	@cd $(FRONTEND_DIR) && bun run build
+
+## Run frontend tests in watch mode
+frontend-test:
+	@echo "Running frontend tests..."
+	@cd $(FRONTEND_DIR) && bun run test
+
+## Run frontend tests once
+frontend-test-run:
+	@echo "Running frontend tests (single run)..."
+	@cd $(FRONTEND_DIR) && bun run test:run
+
+## Run frontend tests with coverage
+frontend-test-cover:
+	@echo "Running frontend tests with coverage..."
+	@cd $(FRONTEND_DIR) && bun run test:coverage
+
+## Run frontend linter
+frontend-lint:
+	@echo "Running frontend linter..."
+	@cd $(FRONTEND_DIR) && bun run lint
+
+## Run frontend linter with auto-fix
+frontend-lint-fix:
+	@echo "Running frontend linter with auto-fix..."
+	@cd $(FRONTEND_DIR) && bun run lint:fix
+
+## Run frontend type checking
+frontend-type-check:
+	@echo "Running frontend type check..."
+	@cd $(FRONTEND_DIR) && bun run type-check
+
+## Start frontend container with compose
+frontend-up:
+	@echo "Starting frontend container..."
+	@docker compose up -d frontend
+
+## Stop frontend container
+frontend-stop:
+	@echo "Stopping frontend container..."
+	@docker compose stop frontend
+
+## Stop and remove frontend container
+frontend-down:
+	@echo "Stopping and removing frontend container..."
+	@docker compose rm -sf frontend
+
+## View frontend container logs
+frontend-logs:
+	@docker compose logs -f frontend --tail 100
+
+## Restart frontend container
 frontend-restart:
 	@echo "Restarting frontend container..."
 	@docker compose restart frontend
 
-# UI commands will be added here
+## Rebuild and restart frontend container
+frontend-rebuild:
+	@echo "Rebuilding frontend container..."
+	@docker compose up -d --build frontend
 
 # =============================================================================
 # DOCKER COMPOSE COMMANDS
@@ -244,8 +311,21 @@ help:
 	@echo "  make migrate-force version=x - Force set migration version"
 	@echo ""
 	@echo "Frontend Commands:"
-	@echo "  make frontend-restart         - Restart frontend container"
-
+	@echo "  make frontend-dev           - Run frontend development server"
+	@echo "  make frontend-build         - Build frontend for production"
+	@echo "  make frontend-test          - Run frontend tests in watch mode"
+	@echo "  make frontend-test-run      - Run frontend tests once"
+	@echo "  make frontend-test-cover    - Run frontend tests with coverage"
+	@echo "  make frontend-lint          - Run frontend linter"
+	@echo "  make frontend-lint-fix      - Run frontend linter with auto-fix"
+	@echo "  make frontend-type-check    - Run frontend type checking"
+	@echo "  make frontend-up            - Start frontend container"
+	@echo "  make frontend-stop          - Stop frontend container"
+	@echo "  make frontend-down          - Stop and remove frontend container"
+	@echo "  make frontend-logs          - View frontend container logs"
+	@echo "  make frontend-restart       - Restart frontend container"
+	@echo "  make frontend-rebuild       - Rebuild and restart frontend container"
+	@echo ""
 	@echo "Docker Compose Commands:"
 	@echo "  make up                     - Start all services"
 	@echo "  make down                   - Stop all services"
