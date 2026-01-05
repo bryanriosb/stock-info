@@ -408,6 +408,7 @@ make frontend-build && make backend-build  # Build both
 ## 📈 Roadmap
 
 ### Version 1.1 (Upcoming)
+- [ ] Add more stock information source
 - [ ] Advanced filtering and search capabilities
 - [ ] Portfolio tracking and management
 - [ ] Email notifications for recommendations
