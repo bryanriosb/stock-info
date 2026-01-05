@@ -62,6 +62,11 @@ func (m *MockUserRepository) FindAll(ctx context.Context) ([]*domain.User, error
 	return args.Get(0).([]*domain.User), args.Error(1)
 }
 
+func (m *MockUserRepository) CountByRole(ctx context.Context, role domain.Role) (int64, error) {
+	args := m.Called(ctx, role)
+	return args.Get(0).(int64), args.Error(1)
+}
+
 func TestCreate_Success(t *testing.T) {
 	mockRepo := new(MockUserRepository)
 
@@ -244,6 +249,73 @@ func TestDelete_NotFound(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Equal(t, ErrUserNotFound, err)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestDelete_LastAdmin(t *testing.T) {
+	mockRepo := new(MockUserRepository)
+
+	adminUser := &domain.User{ID: 1, Username: "admin", Role: domain.RoleAdmin}
+	mockRepo.On("FindByID", mock.Anything, int64(1)).Return(adminUser, nil)
+	mockRepo.On("CountByRole", mock.Anything, domain.RoleAdmin).Return(int64(1), nil)
+
+	uc := NewUserUseCase(mockRepo)
+	err := uc.Delete(context.Background(), 1)
+
+	assert.Error(t, err)
+	assert.Equal(t, ErrLastAdmin, err)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestDelete_AdminWithOtherAdmins(t *testing.T) {
+	mockRepo := new(MockUserRepository)
+
+	adminUser := &domain.User{ID: 1, Username: "admin", Role: domain.RoleAdmin}
+	mockRepo.On("FindByID", mock.Anything, int64(1)).Return(adminUser, nil)
+	mockRepo.On("CountByRole", mock.Anything, domain.RoleAdmin).Return(int64(2), nil)
+	mockRepo.On("Delete", mock.Anything, int64(1)).Return(nil)
+
+	uc := NewUserUseCase(mockRepo)
+	err := uc.Delete(context.Background(), 1)
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestUpdate_ChangeRoleLastAdmin(t *testing.T) {
+	mockRepo := new(MockUserRepository)
+
+	adminUser := &domain.User{ID: 1, Username: "admin", Email: "admin@example.com", Role: domain.RoleAdmin}
+	mockRepo.On("FindByID", mock.Anything, int64(1)).Return(adminUser, nil)
+	mockRepo.On("CountByRole", mock.Anything, domain.RoleAdmin).Return(int64(1), nil)
+
+	uc := NewUserUseCase(mockRepo)
+	user, err := uc.Update(context.Background(), 1, UpdateUserRequest{
+		Role: string(domain.RoleUser),
+	})
+
+	assert.Error(t, err)
+	assert.Equal(t, ErrLastAdmin, err)
+	assert.Nil(t, user)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestUpdate_ChangeRoleWithOtherAdmins(t *testing.T) {
+	mockRepo := new(MockUserRepository)
+
+	adminUser := &domain.User{ID: 1, Username: "admin", Email: "admin@example.com", Role: domain.RoleAdmin}
+	mockRepo.On("FindByID", mock.Anything, int64(1)).Return(adminUser, nil)
+	mockRepo.On("CountByRole", mock.Anything, domain.RoleAdmin).Return(int64(2), nil)
+	mockRepo.On("Update", mock.Anything, mock.AnythingOfType("*domain.User")).Return(nil)
+
+	uc := NewUserUseCase(mockRepo)
+	user, err := uc.Update(context.Background(), 1, UpdateUserRequest{
+		Role: string(domain.RoleUser),
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, user)
+	assert.Equal(t, domain.RoleUser, user.Role)
 	mockRepo.AssertExpectations(t)
 }
 
