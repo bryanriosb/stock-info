@@ -19,47 +19,37 @@ func main() {
 
 	log.Printf("Starting application in %s mode", cfg.Env)
 
+	// Connect to database
 	if err := database.Init(cfg.Database); err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer database.Close()
 
-	// Run migrations based on environment
-	if err := runMigrations(cfg); err != nil {
+	// Run migrations
+	_, currentFile, _, _ := runtime.Caller(0)
+	migrationsPath := filepath.Join(filepath.Dir(currentFile), "..", "..", "migrations")
+
+	if err := database.RunMigrations(cfg, migrationsPath,
+		&stockDomain.Stock{},
+		&userDomain.User{},
+		&authDomain.RefreshToken{},
+		&ratingDomain.RatingOption{},
+	); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
+	// Seed admin
 	if err := database.SeedAdmin(database.DB(), cfg.Admin); err != nil {
 		log.Fatalf("Failed to seed admin user: %v", err)
 	}
 
 	log.Println("Database connected and migrations completed")
 
+	// Start server
 	app := newFiberApp()
 	router.Setup(app, database.DB(), cfg)
 
 	go startServer(app, cfg.Server.Port)
 
 	gracefulShutdown(app)
-}
-
-// runMigrations executes database migrations based on the environment
-// - Development: uses GORM AutoMigrate (automatic, flexible)
-// - Production: uses golang-migrate with versioned SQL files (controlled, safe)
-func runMigrations(cfg *shared.Config) error {
-	if cfg.IsProduction() {
-		// Production: use versioned SQL migrations
-		_, currentFile, _, _ := runtime.Caller(0)
-		migrationsPath := filepath.Join(filepath.Dir(currentFile), "..", "..", "migrations")
-		return database.RunProductionMigrations(cfg.Database, migrationsPath)
-	}
-
-	// Development: use GORM AutoMigrate
-	return database.RunAutoMigrate(
-		database.DB(),
-		&stockDomain.Stock{},
-		&userDomain.User{},
-		&authDomain.RefreshToken{},
-		&ratingDomain.RatingOption{},
-	)
 }

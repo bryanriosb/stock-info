@@ -80,3 +80,13 @@ func (m *Migrator) Close() error {
 	}
 	return dbErr
 }
+
+// RunMigrations executes database migrations based on the environment
+// - Development: uses GORM AutoMigrate (automatic, flexible)
+// - Production: uses golang-migrate with versioned SQL files (controlled, safe)
+func RunMigrations(cfg *shared.Config, migrationsPath string, models ...interface{}) error {
+	if cfg.IsProduction() {
+		return RunProductionMigrations(cfg.Database, migrationsPath)
+	}
+	return RunAutoMigrate(DB(), models...)
+}
