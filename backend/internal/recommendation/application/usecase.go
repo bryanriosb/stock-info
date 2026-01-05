@@ -92,16 +92,26 @@ func calculateScore(stock *stockDomain.Stock) (float64, string) {
 
 func getRatingScore(from, to string) float64 {
 	ratings := map[string]int{
-		"strong sell":     1,
-		"sell":            2,
-		"underperform":    3,
-		"market perform":  4,
-		"neutral":         5,
-		"hold":            5,
-		"buy":             7,
-		"outperform":      8,
-		"strong buy":      9,
-		"speculative buy": 8,
+		"sell":                1,
+		"negative":            2,
+		"underperform":        3,
+		"sector underperform": 3,
+		"cautious":            4,
+		"market perform":      5,
+		"sector perform":      5,
+		"neutral":             5,
+		"hold":                5,
+		"equal weight":        5,
+		"in-line":             5,
+		"buy":                 7,
+		"positive":            7,
+		"overweight":          7,
+		"outperform":          8,
+		"outperformer":        8,
+		"market outperform":   8,
+		"sector outperform":   8,
+		"speculative buy":     8,
+		"strong-buy":          9,
 	}
 
 	fromScore := ratings[strings.ToLower(from)]
