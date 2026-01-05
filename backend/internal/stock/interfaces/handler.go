@@ -86,7 +86,7 @@ func (h *Handler) SyncStocksStream(c *fiber.Ctx) error {
 	c.Set("Connection", "keep-alive")
 	c.Set("X-Accel-Buffering", "no")
 	c.Set("Access-Control-Allow-Origin", "*")
-	c.Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+	c.Set("Access-Control-Allow-Headers", "Content-Type")
 
 	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
